@@ -1,0 +1,160 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1778536884125,
+      "tag": "0000_loving_mentallo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1778538624792,
+      "tag": "0001_cuddly_sue_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778539927060,
+      "tag": "0002_moaning_morlun",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1778540554820,
+      "tag": "0003_public_calypso",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1778541256382,
+      "tag": "0004_open_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1778541851069,
+      "tag": "0005_sharp_wrecking_crew",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1778542871742,
+      "tag": "0006_fuzzy_omega_red",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778543691959,
+      "tag": "0007_magenta_vision",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1778544457406,
+      "tag": "0008_keen_liz_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1778544752728,
+      "tag": "0009_flat_miek",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1778546044155,
+      "tag": "0010_orange_aqueduct",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1778618225448,
+      "tag": "0011_cute_mercury",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1778619410741,
+      "tag": "0012_redundant_the_call",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1778619695176,
+      "tag": "0013_marvelous_surge",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1778620314370,
+      "tag": "0014_loans_balance_date",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1747526400000,
+      "tag": "0015_loans_interest_fixed_until",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1747526401000,
+      "tag": "0016_loans_start_date",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1779097118906,
+      "tag": "0017_tan_tomas",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1779129823570,
+      "tag": "0018_dapper_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1779316993093,
+      "tag": "0019_red_the_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1779408000000,
+      "tag": "0020_expense_categories_betrkv",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1779376349555,
+      "tag": "0021_serious_gunslinger",
+      "breakpoints": true
+    }
+  ]
+}

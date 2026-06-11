@@ -1,0 +1,1 @@
+ALTER TABLE `leases` ADD `deposit_factor` real;

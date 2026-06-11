@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* ── Light mode (default) ── */
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-background:        oklch(0.990 0.000 0);
+  --color-foreground:        oklch(0.150 0.015 265);
+
+  --color-card:              oklch(1.000 0.000 0);
+  --color-card-foreground:   oklch(0.150 0.015 265);
+
+  --color-popover:           oklch(1.000 0.000 0);
+  --color-popover-foreground: oklch(0.150 0.015 265);
+
+  --color-primary:           oklch(0.461 0.054 207);   /* Domora teal #1E6E76 */
+  --color-primary-foreground: oklch(1.000 0.000 0);
+
+  --color-secondary:         oklch(0.960 0.004 264);   /* slate-100 */
+  --color-secondary-foreground: oklch(0.208 0.020 265);
+
+  --color-muted:             oklch(0.972 0.004 264);   /* slate-50 */
+  --color-muted-foreground:  oklch(0.554 0.023 265);   /* slate-500 */
+
+  --color-accent:            oklch(0.960 0.004 264);
+  --color-accent-foreground: oklch(0.208 0.020 265);
+
+  --color-destructive:       oklch(0.577 0.245 27.3);
+  --color-destructive-foreground: oklch(1.000 0.000 0);
+
+  --color-border:            oklch(0.920 0.008 264);   /* slate-200 */
+  --color-input:             oklch(0.920 0.008 264);
+  --color-ring:              oklch(0.461 0.054 207);
+
+  --radius: 0.5rem;
+
+  --shadow-xs:  0 1px 2px 0 oklch(0 0 0 / 0.04);
+  --shadow-sm:  0 1px 3px 0 oklch(0 0 0 / 0.07), 0 1px 2px -1px oklch(0 0 0 / 0.07);
+  --shadow-md:  0 4px 6px -1px oklch(0 0 0 / 0.07), 0 2px 4px -2px oklch(0 0 0 / 0.07);
+}
+
+/* ── Dark mode overrides ── */
+@layer base {
+  .dark {
+    --color-background:        oklch(0.108 0.008 265);
+    --color-foreground:        oklch(0.970 0.002 247);
+
+    --color-card:              oklch(0.148 0.010 265);
+    --color-card-foreground:   oklch(0.970 0.002 247);
+
+    --color-popover:           oklch(0.148 0.010 265);
+    --color-popover-foreground: oklch(0.970 0.002 247);
+
+    --color-primary:           oklch(0.595 0.063 207);   /* Domora teal — brighter on dark */
+    --color-primary-foreground: oklch(1.000 0.000 0);
+
+    --color-secondary:         oklch(0.200 0.012 265);
+    --color-secondary-foreground: oklch(0.970 0.002 247);
+
+    --color-muted:             oklch(0.200 0.012 265);
+    --color-muted-foreground:  oklch(0.620 0.023 265);
+
+    --color-accent:            oklch(0.200 0.012 265);
+    --color-accent-foreground: oklch(0.970 0.002 247);
+
+    --color-destructive:       oklch(0.650 0.245 27.3);
+    --color-destructive-foreground: oklch(1.000 0.000 0);
+
+    --color-border:            oklch(0.240 0.012 265);
+    --color-input:             oklch(0.240 0.012 265);
+    --color-ring:              oklch(0.595 0.063 207);
+
+    --shadow-xs:  0 1px 2px 0 oklch(0 0 0 / 0.25);
+    --shadow-sm:  0 1px 3px 0 oklch(0 0 0 / 0.30), 0 1px 2px -1px oklch(0 0 0 / 0.30);
+    --shadow-md:  0 4px 6px -1px oklch(0 0 0 / 0.30), 0 2px 4px -2px oklch(0 0 0 / 0.30);
+  }
+
+  * {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklab, var(--color-ring) 50%, transparent);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar (light) */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-muted-foreground); }
+}
+
+/* ── Privacy-Modus: blur personenbezogene Daten ── */
+@layer utilities {
+  html[data-privacy="on"] [data-private="true"] {
+    filter: blur(5px);
+    transition: filter 0.15s ease-in-out;
+    cursor: pointer;
+    user-select: none;
+  }
+  html[data-privacy="on"] [data-private="true"]:hover,
+  html[data-privacy="on"] [data-private="true"]:focus,
+  html[data-privacy="on"] [data-private="true"]:active {
+    filter: blur(0);
+    user-select: auto;
+  }
+}
