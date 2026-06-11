@@ -17,7 +17,6 @@
     "db:seed": "tsx src/db/seed.ts"
   },
   "dependencies": {
-    "@auth/drizzle-adapter": "^1.7.4",
     "@hookform/resolvers": "^5.0.1",
     "@node-rs/argon2": "^2.0.2",
     "@paralleldrive/cuid2": "^2.2.2",
