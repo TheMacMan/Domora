@@ -57,18 +57,23 @@ Self-hosted Mietverwaltung für 5 Wohneinheiten. Steuerlogik (Anlage V) ist Kern
 ```
 src/
   app/                  # App Router routes
-    (auth)/             # Login, 2FA-Setup
+    (auth)/             # Login
     (app)/              # Authentifizierter Bereich
       dashboard/
-      properties/
+      properties/         # inkl. Wohneinheiten (units)
       tenants/
       leases/
       payments/
       expenses/
       loans/
-      documents/
-      tax/              # Anlage V Export
+      cashflow/
+      service-charges/    # Nebenkostenabrechnung (NK) pro Mietverhältnis
+      weg-statements/     # WEG-Jahresabrechnung
+      cpi/                # VPI / Indexmiete (Verbraucherpreisindex)
+      tax/                # Anlage V Export
       settings/
+      # Hinweis: Dokumente haben keine eigene Route – Upload/Anzeige
+      # über components/document/ + API-Route app/api/documents/[id]
   components/
     ui/                 # shadcn (generiert, nicht von Hand editieren außer Theme)
     forms/              # wiederverwendbare Form-Felder
