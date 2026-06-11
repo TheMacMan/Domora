@@ -45,8 +45,9 @@ Self-hosted Mietverwaltung für 5 Wohneinheiten. Steuerlogik (Anlage V) ist Kern
 - Passwort-Hashes mit `argon2id`, niemals bcrypt/PBKDF2.
 
 ### Logging
-- `pino` über `src/lib/logger.ts`. Keine `console.log` in Production-Code.
-- Audit-Log: jede schreibende Server Action erzeugt Eintrag in `audit_log` (User, Action, Entity, Before/After-Snapshot).
+- Keine `console.log` im App-Code (Server Components/Actions/Komponenten). In CLI-Skripten wie `src/db/seed.ts` ist `console.*` ok.
+- Audit-Log: jede schreibende Server Action erzeugt über `src/lib/audit.ts` einen Eintrag in `audit_log` (User, Action, Entity, Before/After-Snapshot).
+- Strukturiertes Logging (`pino` via `src/lib/logger.ts`) ist geplant, aber noch nicht eingerichtet — bei Bedarf zuerst Dependency + Modul anlegen.
 
 ### Errors
 - Server Actions returnen `{ ok: true, data } | { ok: false, error }` (niemals throw an Client).
@@ -85,7 +86,7 @@ src/
   lib/
     auth/
     money.ts
-    logger.ts
+    audit.ts            # Audit-Log-Writer
     tax/                # Anlage V Berechnung – getestet!
     pdf/                # PDF-Generierung
     validators/         # zod schemas

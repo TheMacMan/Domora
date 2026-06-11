@@ -45,7 +45,7 @@ audit_log (alles was geschrieben wird)
 users (genau 1 Eintrag)
 ```
 
-Detail-Schema → siehe `SCHEMA.md`.
+Detail-Schema → siehe `src/db/schema.ts`.
 
 ## 5. Features – Phase 1 (MVP, ca. 2–3 Wochenenden)
 
