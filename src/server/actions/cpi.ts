@@ -10,7 +10,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { todayLocal } from "@/lib/dates";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
-type FetchResult = { ok: true; added: number; updated: number } | { ok: false; error: string };
+type FetchResult = { ok: true; added: number; updated: number; latestYearMonth: string } | { ok: false; error: string };
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -664,9 +664,13 @@ export async function fetchVpiFromDestatisAction(): Promise<FetchResult> {
     after: { added, updated, startYear, endYear, total: points.length },
   });
 
+  // Jüngster abgerufener Monat — für eine aussagekräftige Erfolgsmeldung,
+  // damit "0 neu, 0 aktualisiert" nicht wie ein Fehler wirkt.
+  const latestYearMonth = points.reduce((mx, p) => (p.yearMonth > mx ? p.yearMonth : mx), points[0]!.yearMonth);
+
   revalidatePath("/cpi");
   revalidatePath("/dashboard");
-  return { ok: true, added, updated };
+  return { ok: true, added, updated, latestYearMonth };
 }
 
 export async function upsertVpiEntryAction(yearMonth: string, value: number): Promise<ActionResult> {

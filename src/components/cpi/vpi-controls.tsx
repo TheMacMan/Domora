@@ -25,7 +25,8 @@ export function VpiFetchButton() {
     startTransition(async () => {
       const result = await fetchVpiFromDestatisAction();
       if (result.ok) {
-        setStatus({ ok: true, msg: `${result.added} neu, ${result.updated} aktualisiert` });
+        const latest = result.latestYearMonth ? ` · aktuellster Wert: ${fmtMonth(result.latestYearMonth)}` : "";
+        setStatus({ ok: true, msg: `${result.added} neu, ${result.updated} aktualisiert${latest}` });
         router.refresh();
       } else {
         setStatus({ ok: false, msg: result.error });
