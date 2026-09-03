@@ -508,6 +508,12 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
           {loan.notes}
         </div>
       )}
+
+      <div>
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/loans">← Alle Darlehen</Link>
+        </Button>
+      </div>
     </div>
   );
 }
