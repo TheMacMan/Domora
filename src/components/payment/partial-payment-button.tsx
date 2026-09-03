@@ -58,7 +58,7 @@ export function PartialPaymentButton({ paymentId, defaultAmountEur, defaultRecei
   }
 
   return (
-    <form action={handleSubmit} className="flex items-center gap-1">
+    <form action={handleSubmit} className="flex flex-wrap items-center gap-1">
       <div className="relative">
         <Input
           id={amountId}
@@ -66,11 +66,12 @@ export function PartialPaymentButton({ paymentId, defaultAmountEur, defaultRecei
           type="number"
           step="0.01"
           min="0.01"
+          inputMode="decimal"
           defaultValue={defaultAmountEur != null ? defaultAmountEur.toFixed(2) : ""}
           placeholder="0,00"
           autoFocus
           disabled={isPending}
-          className="h-7 w-24 pr-6 text-xs"
+          className="h-9 w-24 pr-6 text-base md:h-7 md:text-xs"
         />
         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">€</span>
       </div>
@@ -80,16 +81,16 @@ export function PartialPaymentButton({ paymentId, defaultAmountEur, defaultRecei
         type="date"
         defaultValue={defaultReceivedAt ?? todayLocal()}
         disabled={isPending}
-        className="h-7 w-32 text-xs"
+        className="h-9 w-32 text-base md:h-7 md:text-xs"
       />
-      <Button type="submit" size="sm" loading={isPending} className="h-7 text-xs">
+      <Button type="submit" size="sm" loading={isPending} className="h-9 md:h-7 text-xs">
         OK
       </Button>
       <Button
         type="button"
         size="icon"
         variant="ghost"
-        className="size-7"
+        className="size-9 md:size-7"
         onClick={() => setOpen(false)}
         disabled={isPending}
       >
