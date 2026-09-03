@@ -299,7 +299,41 @@ export default async function PaymentsPage({
             <h2 className="text-base font-semibold">Offene Posten aus Vormonaten</h2>
             <Badge variant="destructive">{openPayments.length}</Badge>
           </div>
-          <div className="rounded-xl border border-destructive/30 overflow-hidden">
+          {/* Mobile: Cards */}
+          <div className="space-y-3 md:hidden">
+            {openPayments.map((p) => (
+              <div key={p.id} className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">
+                      {p.lease.leaseTenants.map((lt, i) => (
+                        <span key={lt.tenant.id}>{i > 0 && " · "}<Private>{lt.tenant.lastName}, {lt.tenant.firstName}</Private></span>
+                      ))}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {p.lease.unit.name} · {formatMonthLabel(p.dueDate.slice(0, 7))}
+                    </p>
+                  </div>
+                  <p className="tabular-nums text-destructive font-semibold shrink-0">
+                    {formatMoney(p.rentCents + (p.serviceChargesCents ?? 0))}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <MarkPaidButton paymentId={p.id} defaultPaidAt={p.dueDate} label="Bezahlt" triggerClassName="w-full" />
+                  </div>
+                  <Button asChild variant="outline" size="iconSm" className="size-9">
+                    <Link href={`/payments/${p.id}/edit`}>
+                      <Pencil className="size-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: Tabelle */}
+          <div className="hidden md:block rounded-xl border border-destructive/30 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-destructive/5">
                 <tr className="border-b border-destructive/20">

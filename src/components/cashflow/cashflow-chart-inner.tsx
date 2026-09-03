@@ -65,13 +65,13 @@ export function CashflowChart({ months, mode = "full" }: { months: CashflowMonth
         <Legend wrapperStyle={{ fontSize: "11px" }} />
         <ReferenceLine y={0} stroke="hsl(var(--border))" />
         <ReferenceLine x={todayYM} stroke="#1E6E76" strokeDasharray="3 3" />
-        <Bar dataKey="einnahmenIst" name={isSimple ? "Kaltmiete erhalten" : "Einzahlungen erhalten"} stackId="a" fill="#10b981" />
-        <Bar dataKey="einnahmenSoll" name={isSimple ? "Kaltmiete erwartet" : "Einzahlungen erwartet"} stackId="a" fill="#10b981" fillOpacity={0.35} />
-        {!isSimple && <Bar dataKey="ausgabenIst" name="Auszahlungen (Werbungskosten)" stackId="a" fill="#ef4444" />}
+        <Bar dataKey="einnahmenIst" name={isSimple ? "Kaltmiete (erhalten)" : "Einzahlungen (erhalten)"} stackId="a" fill="#10b981" />
+        <Bar dataKey="einnahmenSoll" name={isSimple ? "Kaltmiete (erwartet)" : "Einzahlungen (erwartet)"} stackId="a" fill="#10b981" fillOpacity={0.35} />
+        {!isSimple && <Bar dataKey="ausgabenIst" name="Auszahlungen (gezahlt)" stackId="a" fill="#ef4444" />}
         {!isSimple && <Bar dataKey="ausgabenProg" name="Auszahlungen (Prognose)" stackId="a" fill="#ef4444" fillOpacity={0.35} />}
-        <Bar dataKey="darlehenIst" name="Darlehen (bezahlt)" stackId="a" fill="#f59e0b" />
-        <Bar dataKey="darlehenSoll" name="Darlehen (offen)" stackId="a" fill="#f59e0b" fillOpacity={0.35} />
-        <Line dataKey="netto" name="Netto-Cashflow" stroke="#1E6E76" strokeWidth={2} dot={{ r: 3 }} />
+        <Bar dataKey="darlehenIst" name="Darlehensrate (gezahlt)" stackId="a" fill="#f59e0b" />
+        <Bar dataKey="darlehenSoll" name="Darlehensrate (offen)" stackId="a" fill="#f59e0b" fillOpacity={0.35} />
+        <Line dataKey="netto" name="Netto-Cashflow (Prognose)" stroke="#1E6E76" strokeWidth={2} dot={{ r: 3 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
