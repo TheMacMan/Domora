@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcAfA, calcAnlageV } from "../anlage-v";
+import { calcAfA, calcAnlageV, buildLoanInterestPayments } from "../anlage-v";
 
 const BASE_INPUT = {
   propertyId: "prop1",
@@ -11,6 +11,59 @@ const BASE_INPUT = {
   loanPayments: [],
   expenses: [],
 };
+
+describe("buildLoanInterestPayments (Vorrang Jahres-Zinsbescheinigung)", () => {
+  const computed = [
+    { interestCents: 10000, dueDate: "2026-01-01" },
+    { interestCents: 9000, dueDate: "2026-02-01" },
+    { interestCents: 5000, dueDate: "2025-12-01" }, // Vorjahr
+  ];
+
+  it("nutzt den manuellen Jahreswert statt der berechneten Zinsen", () => {
+    const out = buildLoanInterestPayments(
+      [{ loanPayments: computed, manualInterestCents: 22222 }],
+      2026,
+    );
+    // Ein einzelner Jahresposten mit dem manuellen Wert
+    expect(out).toEqual([{ interestCents: 22222, dueDate: "2026-01-01" }]);
+    // In der Anlage-V-Summe schlägt genau dieser Betrag durch
+    const res = calcAnlageV({ ...BASE_INPUT, loanPayments: out });
+    expect(res.werbungskosten.schuldzinsenCents).toBe(22222);
+  });
+
+  it("fällt ohne manuellen Wert auf die berechneten Monatszinsen zurück", () => {
+    const out = buildLoanInterestPayments(
+      [{ loanPayments: computed, manualInterestCents: null }],
+      2026,
+    );
+    expect(out).toEqual(computed);
+    // calcAnlageV filtert das Vorjahr (2025) heraus → 10000 + 9000
+    const res = calcAnlageV({ ...BASE_INPUT, loanPayments: out });
+    expect(res.werbungskosten.schuldzinsenCents).toBe(19000);
+  });
+
+  it("mischt manuelle und berechnete Darlehen korrekt", () => {
+    const out = buildLoanInterestPayments(
+      [
+        { loanPayments: computed, manualInterestCents: 30000 },
+        { loanPayments: [{ interestCents: 4000, dueDate: "2026-03-01" }], manualInterestCents: null },
+      ],
+      2026,
+    );
+    const res = calcAnlageV({ ...BASE_INPUT, loanPayments: out });
+    expect(res.werbungskosten.schuldzinsenCents).toBe(34000);
+  });
+
+  it("manueller Wert 0 zählt als erfasst (nicht Fallback)", () => {
+    const out = buildLoanInterestPayments(
+      [{ loanPayments: computed, manualInterestCents: 0 }],
+      2026,
+    );
+    expect(out).toEqual([{ interestCents: 0, dueDate: "2026-01-01" }]);
+    const res = calcAnlageV({ ...BASE_INPUT, loanPayments: out });
+    expect(res.werbungskosten.schuldzinsenCents).toBe(0);
+  });
+});
 
 describe("calcAfA", () => {
   it("berechnet 2 % vom Gebäudeanteil", () => {

@@ -2,9 +2,9 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { properties, payments, loanPayments, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
+import { properties, payments, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { calcAnlageV, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
+import { calcAnlageV, buildLoanInterestPayments, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
 
 export async function getAnlageVAction(propertyId: string, year: number): Promise<AnlageVErgebnis | null> {
   await requireUser();
@@ -32,10 +32,26 @@ export async function getAnlageVAction(propertyId: string, year: number): Promis
   });
   const loanIds = new Set(propertyLoans.map((l) => l.id));
 
-  const propertyLoanPayments = loanIds.size > 0
+  const yearLoanPayments = loanIds.size > 0
     ? (await db.query.loanPayments.findMany({ where: isNull(loanPayments.deletedAt) }))
         .filter((lp) => loanIds.has(lp.loanId) && lp.dueDate.startsWith(yearStr))
     : [];
+
+  // Manuell erfasste Jahres-Schuldzinsen (Zinsbescheinigung) haben Vorrang vor den
+  // aus dem Tilgungsplan berechneten Zinsen — pro Darlehen entschieden.
+  const manualInterest = loanIds.size > 0
+    ? (await db.query.loanInterestYears.findMany({ where: eq(loanInterestYears.year, year) }))
+        .filter((r) => loanIds.has(r.loanId))
+    : [];
+  const manualByLoan = new Map(manualInterest.map((r) => [r.loanId, r.interestCents]));
+
+  const propertyLoanPayments = buildLoanInterestPayments(
+    propertyLoans.map((l) => ({
+      loanPayments: yearLoanPayments.filter((lp) => lp.loanId === l.id),
+      manualInterestCents: manualByLoan.has(l.id) ? manualByLoan.get(l.id)! : null,
+    })),
+    year,
+  );
 
   // Ausgaben: direkt zugeordnet oder anteilig (propertyId = null)
   const allExpenses = await db.query.expenses.findMany({

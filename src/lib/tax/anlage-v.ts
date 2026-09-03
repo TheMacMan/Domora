@@ -65,6 +65,29 @@ export type AnlageVInput = {
   vacancyTotal?: number;
 };
 
+// Baut die loanPayments-Liste für calcAnlageV: Darlehen mit manuell erfasstem
+// Jahres-Schuldzins (aus der Zinsbescheinigung) liefern genau diesen Betrag
+// (Vorrang, exakt), alle anderen ihre aus dem Tilgungsplan berechneten
+// Monatszinsen (Näherung). So bleibt calcAnlageV unverändert.
+export function buildLoanInterestPayments(
+  loans: Array<{
+    loanPayments: Array<{ interestCents: number; dueDate: string }>;
+    manualInterestCents: number | null;
+  }>,
+  year: number,
+): Array<{ interestCents: number; dueDate: string }> {
+  const out: Array<{ interestCents: number; dueDate: string }> = [];
+  for (const loan of loans) {
+    if (loan.manualInterestCents != null) {
+      // Als ein Jahresposten (im Jahr) — calcAnlageV filtert nach dueDate-Jahr.
+      out.push({ interestCents: loan.manualInterestCents, dueDate: `${year}-01-01` });
+    } else {
+      out.push(...loan.loanPayments);
+    }
+  }
+  return out;
+}
+
 export function calcAfA(
   purchasePriceTotal: number | null,
   purchasePriceLand: number | null,

@@ -114,8 +114,8 @@ export default async function CashflowPage({ searchParams }: { searchParams: Pro
           <h1 className="text-2xl font-bold tracking-tight">Cashflow</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isSimple
-              ? "Vereinfacht: nur Kaltmiete gegen Darlehensraten · Werbungskosten und NK ausgeblendet"
-              : "Einzahlungen (Kaltmiete + NK) gegen Auszahlungen (Werbungskosten und Darlehen) · IST bis heute, Prognose ab nächstem Monat"}
+              ? "Vereinfacht: nur Kaltmiete gegen Darlehensraten · Ausgaben und NK ausgeblendet"
+              : "Einzahlungen (Kaltmiete + NK) gegen Auszahlungen (Ausgaben und Darlehen) · IST bis heute, Prognose ab nächstem Monat"}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -179,7 +179,7 @@ export default async function CashflowPage({ searchParams }: { searchParams: Pro
               <p className="text-xs">Auszahlungen</p>
             </div>
             <p className="text-lg font-bold tabular-nums">−{formatMoney(totalExpenses)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Werbungskosten</p>
+            <p className="text-xs text-muted-foreground mt-0.5">gebuchte Ausgaben</p>
           </div>
         )}
         <div className="rounded-xl border bg-card px-4 py-3">

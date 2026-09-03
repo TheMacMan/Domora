@@ -5,7 +5,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { and, asc, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { loans, loanPayments } from "@/db/schema";
+import { loans, loanPayments, loanInterestYears } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { toCents } from "@/lib/money";
 import { loanSchema, type LoanFormInput } from "@/lib/validators/loan";
@@ -131,8 +131,64 @@ export async function getLoanAction(id: string) {
         where: isNull(loanPayments.deletedAt),
         orderBy: [asc(loanPayments.dueDate)],
       },
+      interestYears: {
+        orderBy: [desc(loanInterestYears.year)],
+      },
     },
   });
+}
+
+// Erfasst/aktualisiert die tatsächlich gezahlten Schuldzinsen eines Darlehens für
+// ein Kalenderjahr (aus der Zinsbescheinigung). Hat in Anlage V Vorrang vor den
+// aus dem Tilgungsplan berechneten Zinsen. Upsert über (loanId, year).
+export async function setLoanInterestYearAction(
+  loanId: string,
+  year: number,
+  interestEur: number,
+): Promise<ActionResult> {
+  const user = await requireUser();
+
+  if (!Number.isInteger(year) || year < 1990 || year > 2100) {
+    return { ok: false, error: "Ungültiges Jahr." };
+  }
+  if (!Number.isFinite(interestEur) || interestEur < 0) {
+    return { ok: false, error: "Ungültiger Zinsbetrag." };
+  }
+
+  const loan = await db.query.loans.findFirst({ where: and(eq(loans.id, loanId), isNull(loans.deletedAt)) });
+  if (!loan) return { ok: false, error: "Darlehen nicht gefunden." };
+
+  const interestCents = toCents(interestEur);
+  const existing = await db.query.loanInterestYears.findFirst({
+    where: and(eq(loanInterestYears.loanId, loanId), eq(loanInterestYears.year, year)),
+  });
+
+  if (existing) {
+    await db.update(loanInterestYears)
+      .set({ interestCents, updatedAt: new Date() })
+      .where(eq(loanInterestYears.id, existing.id));
+    await writeAuditLog({ userId: user.id, action: "loan_interest_year.update", entity: "loan_interest_year", entityId: existing.id, before: existing as Record<string, unknown>, after: { loanId, year, interestCents } });
+  } else {
+    const id = createId();
+    await db.insert(loanInterestYears).values({ id, loanId, year, interestCents });
+    await writeAuditLog({ userId: user.id, action: "loan_interest_year.create", entity: "loan_interest_year", entityId: id, after: { loanId, year, interestCents } });
+  }
+
+  revalidatePath(`/loans/${loanId}`);
+  return { ok: true };
+}
+
+export async function deleteLoanInterestYearAction(id: string): Promise<ActionResult> {
+  const user = await requireUser();
+
+  const entry = await db.query.loanInterestYears.findFirst({ where: eq(loanInterestYears.id, id) });
+  if (!entry) return { ok: false, error: "Eintrag nicht gefunden." };
+
+  await db.delete(loanInterestYears).where(eq(loanInterestYears.id, id));
+  await writeAuditLog({ userId: user.id, action: "loan_interest_year.delete", entity: "loan_interest_year", entityId: id, before: entry as Record<string, unknown> });
+
+  revalidatePath(`/loans/${entry.loanId}`);
+  return { ok: true };
 }
 
 async function insertLoanPayments(

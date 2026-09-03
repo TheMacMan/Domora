@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -279,6 +279,31 @@ export const loanPayments = sqliteTable("loan_payments", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
+// Tatsächlich gezahlte Schuldzinsen pro Darlehen und Kalenderjahr — direkt aus der
+// Zinsbescheinigung / dem Jahreskontoauszug der Bank. Hat in Anlage V Vorrang vor
+// den aus dem Tilgungsplan (loan_payments) berechneten Zinsen (Näherung).
+export const loanInterestYears = sqliteTable(
+  "loan_interest_years",
+  {
+    id: text("id").primaryKey(),
+    loanId: text("loan_id")
+      .notNull()
+      .references(() => loans.id),
+    year: integer("year").notNull(),
+    interestCents: integer("interest_cents").notNull(), // Schuldzinsen des Jahres in Cents
+    note: text("note"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => ({
+    loanYearUnique: uniqueIndex("loan_interest_years_loan_year_uq").on(t.loanId, t.year),
+  }),
+);
+
 // Ausgaben-Kategorien — getrennt in umlegbare Betriebskosten (§ 2 BetrKV)
 // und nicht umlegbare Werbungskosten.
 export const EXPENSE_CATEGORIES = [
@@ -378,12 +403,17 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
 export const loansRelations = relations(loans, ({ one, many }) => ({
   property: one(properties, { fields: [loans.propertyId], references: [properties.id] }),
   loanPayments: many(loanPayments),
+  interestYears: many(loanInterestYears),
   replacedBy: one(loans, { fields: [loans.replacedByLoanId], references: [loans.id], relationName: "replacement" }),
   replaces: many(loans, { relationName: "replacement" }),
 }));
 
 export const loanPaymentsRelations = relations(loanPayments, ({ one }) => ({
   loan: one(loans, { fields: [loanPayments.loanId], references: [loans.id] }),
+}));
+
+export const loanInterestYearsRelations = relations(loanInterestYears, ({ one }) => ({
+  loan: one(loans, { fields: [loanInterestYears.loanId], references: [loans.id] }),
 }));
 
 export const expensesRelations = relations(expenses, ({ one }) => ({
@@ -451,6 +481,8 @@ export type NewExpense = typeof expenses.$inferInsert;
 export type Loan = typeof loans.$inferSelect;
 export type NewLoan = typeof loans.$inferInsert;
 export type LoanPayment = typeof loanPayments.$inferSelect;
+export type LoanInterestYear = typeof loanInterestYears.$inferSelect;
+export type NewLoanInterestYear = typeof loanInterestYears.$inferInsert;
 export type NewLoanPayment = typeof loanPayments.$inferInsert;
 
 

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatMonthLong as formatMonth, todayLocal } from "@/lib/dates";
 import { Pencil, CheckCircle2, CalendarPlus, AlertTriangle, RotateCcw, Calendar, ArrowRight, PiggyBank, Sparkles } from "lucide-react";
+import { LoanInterestYears } from "@/components/loan/loan-interest-years";
 
 function calcPayoffDate(balanceCents: number, interestRateBps: number, monthlyPaymentCents: number, fromDate: string): string | null {
   const r = interestRateBps / 10000 / 12;
@@ -393,6 +394,12 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
       </div>
+
+      {/* Schuldzinsen lt. Zinsbescheinigung (maßgeblich für Anlage V) */}
+      <LoanInterestYears
+        loanId={id}
+        entries={loan.interestYears.map((e) => ({ id: e.id, year: e.year, interestCents: e.interestCents }))}
+      />
 
       {/* Tilgungsplan */}
       <div>
