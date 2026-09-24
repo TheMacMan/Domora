@@ -27,6 +27,7 @@ export default async function EditPaymentPage({ params }: { params: Promise<{ id
           notes: payment.notes ?? "",
         }}
         sollCents={payment.rentCents + (payment.serviceChargesCents ?? 0)}
+        returnTo={`/payments?month=${payment.dueDate.slice(0, 7)}`}
       />
     </div>
   );

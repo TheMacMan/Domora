@@ -2,8 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef, useId, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
-import { Check, X } from "lucide-react";
+import { Check, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,8 +45,9 @@ const POPOVER_EST_HEIGHT = 180;
 const VIEWPORT_MARGIN = 8;
 
 export function MarkPaidButton({ paymentId, defaultPaidAt, label = "Bezahlt", triggerClassName }: Props) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
+  // Sofortige Rückmeldung in der Zeile, bis die aktualisierte Seite da ist
+  const [saved, setSaved] = useState(false);
   const [date, setDate] = useState(defaultPaidAt);
   const [isPending, startTransition] = useTransition();
   const [mounted, setMounted] = useState(false);
@@ -127,9 +127,12 @@ export function MarkPaidButton({ paymentId, defaultPaidAt, label = "Bezahlt", tr
         toast.error(res.error);
         return;
       }
-      toast.success("Als bezahlt markiert");
+      // Kein router.refresh(): revalidatePath() in der Action liefert die
+      // aktualisierte Seite bereits in derselben Antwort mit. Ein zusätzlicher
+      // Refresh wäre eine zweite Runde, auf die React mit der Anzeige wartet.
+      setSaved(true);
       setOpen(false);
-      router.refresh();
+      toast.success("Als bezahlt markiert");
     });
   }
 
@@ -138,6 +141,18 @@ export function MarkPaidButton({ paymentId, defaultPaidAt, label = "Bezahlt", tr
   const isDefaultDate = date === defaultPaidAt;
   const isThirdWd = date === thirdWd;
   const isToday = date === today;
+
+  if (saved) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center gap-1 h-7 px-2 rounded-md text-xs font-medium text-green-600 bg-green-500/10 ${triggerClassName ?? ""}`}
+        aria-live="polite"
+      >
+        <CheckCircle2 className="size-3" />
+        Bezahlt
+      </span>
+    );
+  }
 
   return (
     <>

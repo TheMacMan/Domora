@@ -14,9 +14,11 @@ type Props = {
   paymentId: string;
   sollCents: number;
   defaultValues: { paidEur: number | undefined; paidAt: string; notes: string };
+  /** Zielseite nach Speichern/Abbrechen — die Zahlungsliste im Monat der Zahlung */
+  returnTo: string;
 };
 
-export function PaymentEditForm({ paymentId, sollCents, defaultValues }: Props) {
+export function PaymentEditForm({ paymentId, sollCents, defaultValues, returnTo }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function PaymentEditForm({ paymentId, sollCents, defaultValues }: Props) 
         return;
       }
       toast.success("Zahlung gespeichert");
-      router.push("/payments");
+      router.replace(returnTo);
     });
   }
 
@@ -80,7 +82,7 @@ export function PaymentEditForm({ paymentId, sollCents, defaultValues }: Props) 
 
       <div className="flex gap-3">
         <Button type="submit" loading={isPending}>Speichern</Button>
-        <Button type="button" variant="outline" disabled={isPending} onClick={() => router.push("/payments")}>
+        <Button type="button" variant="outline" disabled={isPending} onClick={() => router.replace(returnTo)}>
           Abbrechen
         </Button>
       </div>
