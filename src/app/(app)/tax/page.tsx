@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getTaxPropertiesAction, getAnlageVAction } from "@/server/actions/tax";
+import { getTaxPropertiesAction, getAnlageVAction, getTaxEarliestYearAction } from "@/server/actions/tax";
 import { Button } from "@/components/ui/button";
+import { TaxYearSelect } from "@/components/tax/tax-year-select";
 import { formatMoney } from "@/lib/money";
 import { FileDown } from "lucide-react";
 
@@ -18,13 +19,24 @@ export default async function TaxPage({
 }) {
   const { propertyId, year: yearStr } = await searchParams;
   const currentYear = new Date().getFullYear();
-  const year = yearStr ? parseInt(yearStr, 10) : currentYear;
+  const parsedYear = yearStr ? parseInt(yearStr, 10) : NaN;
+  const year = Number.isInteger(parsedYear) && parsedYear >= 1990 && parsedYear <= currentYear + 1
+    ? parsedYear
+    : currentYear;
 
   const propList = await getTaxPropertiesAction();
   const selectedId = propertyId ?? propList[0]?.id;
-  const ergebnis = selectedId ? await getAnlageVAction(selectedId, year) : null;
+  const [ergebnis, earliestYear] = selectedId
+    ? await Promise.all([getAnlageVAction(selectedId, year), getTaxEarliestYearAction(selectedId)])
+    : [null, null];
 
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  // Alle Jahre vom aktuellen bis zum ersten relevanten Jahr des Objekts
+  // (mind. die letzten 5); ein per URL gewähltes älteres Jahr bleibt sichtbar.
+  const firstYear = Math.min(earliestYear ?? currentYear - 4, currentYear - 4, year);
+  const allYears = Array.from({ length: currentYear - firstYear + 1 }, (_, i) => currentYear - i);
+  const RECENT_COUNT = 5;
+  const years = allYears.slice(0, RECENT_COUNT);
+  const olderYears = allYears.slice(RECENT_COUNT);
 
   return (
     <div className="space-y-8">
@@ -61,7 +73,7 @@ export default async function TaxPage({
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">Jahr</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {years.map((y) => (
               <Button
                 key={y}
@@ -72,6 +84,9 @@ export default async function TaxPage({
                 <Link href={`/tax?propertyId=${selectedId}&year=${y}`}>{y}</Link>
               </Button>
             ))}
+            {olderYears.length > 0 && (
+              <TaxYearSelect years={olderYears} selected={year} propertyId={selectedId} />
+            )}
           </div>
         </div>
       </div>

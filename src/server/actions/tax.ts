@@ -108,6 +108,34 @@ export async function getAnlageVAction(propertyId: string, year: number): Promis
   });
 }
 
+// Frühestes steuerlich relevantes Jahr eines Objekts: Anschaffung, erster
+// Mietvertrag oder erste Ausgabe — je nachdem, was früher liegt.
+export async function getTaxEarliestYearAction(propertyId: string): Promise<number | null> {
+  await requireUser();
+
+  const property = await db.query.properties.findFirst({
+    where: and(eq(properties.id, propertyId), isNull(properties.deletedAt)),
+    with: { units: { with: { leases: true } } },
+  });
+  if (!property) return null;
+
+  const candidates: string[] = [];
+  if (property.purchaseDate) candidates.push(property.purchaseDate);
+  for (const u of property.units) {
+    for (const l of u.leases) {
+      if (!l.deletedAt) candidates.push(l.startDate);
+    }
+  }
+  const firstExpense = await db.query.expenses.findFirst({
+    where: and(eq(expenses.propertyId, propertyId), isNull(expenses.deletedAt)),
+    orderBy: (e, { asc }) => [asc(e.date)],
+  });
+  if (firstExpense) candidates.push(firstExpense.date);
+
+  const years = candidates.map((d) => parseInt(d.slice(0, 4), 10)).filter((y) => Number.isFinite(y));
+  return years.length > 0 ? Math.min(...years) : null;
+}
+
 export async function getTaxPropertiesAction() {
   await requireUser();
   return db.query.properties.findMany({
