@@ -10,6 +10,7 @@ import { CheckCircle2, Pencil, TrendingUp, AlertTriangle, Clock, RotateCcw } fro
 import { PartialPaymentButton } from "@/components/payment/partial-payment-button";
 import { MarkPaidButton } from "@/components/payment/mark-paid-button";
 import { DeleteUnpaidButton } from "@/components/payment/delete-unpaid-button";
+import { MonthPicker } from "@/components/month-picker";
 import { toEuros } from "@/lib/money";
 
 export const metadata = { title: "Zahlungen – Domora" };
@@ -46,7 +47,7 @@ export default async function PaymentsPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const { month } = await searchParams;
-  const ym = month ?? currentYearMonth();
+  const ym = month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : currentYearMonth();
   const prev = offsetMonth(ym, -1);
   const next = offsetMonth(ym, 1);
 
@@ -96,7 +97,7 @@ export default async function PaymentsPage({
         <Button asChild variant="ghost" size="sm">
           <Link href={`/payments?month=${prev}`}>←</Link>
         </Button>
-        <span className="text-lg font-semibold w-48 text-center">{formatMonthLabel(ym)}</span>
+        <MonthPicker value={ym} basePath="/payments" />
         <Button asChild variant="ghost" size="sm">
           <Link href={`/payments?month=${next}`}>→</Link>
         </Button>
