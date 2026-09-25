@@ -34,8 +34,8 @@ export async function RentLedgerSection({ leaseId }: { leaseId: string }) {
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className={`rounded-xl border px-4 py-3 ${balanceCents < 0 ? "border-destructive/30 bg-destructive/5" : "bg-card"}`}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className={`col-span-2 sm:col-span-1 rounded-xl border px-4 py-3 ${balanceCents < 0 ? "border-destructive/30 bg-destructive/5" : "bg-card"}`}>
               <p className="text-xs text-muted-foreground mb-1">{balanceLabel}</p>
               <p className={`text-lg font-bold tabular-nums ${balanceColor}`}>{formatMoney(Math.abs(balanceCents))}</p>
               {months != null && (
@@ -73,42 +73,36 @@ export async function RentLedgerSection({ leaseId }: { leaseId: string }) {
                       </span>
                     </span>
                   </summary>
-                  <div className="border-t overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/40 text-xs">
-                        <tr>
-                          <th className="text-left px-3 py-2 font-medium">Datum</th>
-                          <th className="text-left px-3 py-2 font-medium">Buchung</th>
-                          <th className="text-right px-3 py-2 font-medium">Betrag</th>
-                          <th className="text-right px-3 py-2 font-medium">Saldo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {list.map((e, i) => (
-                          <tr key={i} className="border-t">
-                            <td className="px-3 py-1.5 tabular-nums whitespace-nowrap text-muted-foreground">{formatDate(e.date)}</td>
-                            <td className="px-3 py-1.5">
-                              {e.type === "soll" ? (
-                                <span className="text-muted-foreground">Miete {formatMonthLong(e.dueDate.slice(0, 7))}</span>
-                              ) : (
-                                <span>
-                                  {e.amountCents < 0 ? "Rückzahlung" : "Eingang"}
-                                  {e.dueDate && <span className="text-muted-foreground"> · für {formatMonthLong(e.dueDate.slice(0, 7))}</span>}
-                                  {e.note && <span className="block text-xs text-muted-foreground">{e.note}</span>}
-                                </span>
-                              )}
-                            </td>
-                            <td className={`px-3 py-1.5 text-right tabular-nums whitespace-nowrap ${e.type === "soll" ? "text-muted-foreground" : e.amountCents < 0 ? "text-destructive" : "text-green-600"}`}>
-                              {formatMoney(e.amountCents)}
-                            </td>
-                            <td className={`px-3 py-1.5 text-right tabular-nums whitespace-nowrap ${e.balanceCents < 0 ? "text-destructive" : ""}`}>
-                              {formatMoney(e.balanceCents)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  {/* Liste statt 4-spaltiger Tabelle: links Datum + Buchung, rechts Betrag + Saldo —
+                      bleibt auf dem iPhone lesbar, ohne horizontales Scrollen */}
+                  <ul className="border-t divide-y text-sm">
+                    {list.map((e, i) => (
+                      <li key={i} className="flex items-start justify-between gap-3 px-4 py-2">
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground tabular-nums">{formatDate(e.date)}</p>
+                          {e.type === "soll" ? (
+                            <p className="text-muted-foreground">Miete {formatMonthLong(e.dueDate.slice(0, 7))}</p>
+                          ) : (
+                            <>
+                              <p>
+                                {e.amountCents < 0 ? "Rückzahlung" : "Eingang"}
+                                {e.dueDate && <span className="text-muted-foreground"> · {formatMonthLong(e.dueDate.slice(0, 7))}</span>}
+                              </p>
+                              {e.note && <p className="text-xs text-muted-foreground break-words">{e.note}</p>}
+                            </>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`tabular-nums font-medium ${e.type === "soll" ? "text-muted-foreground" : e.amountCents < 0 ? "text-destructive" : "text-green-600"}`}>
+                            {formatMoney(e.amountCents)}
+                          </p>
+                          <p className={`text-xs tabular-nums ${e.balanceCents < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            Saldo {formatMoney(e.balanceCents)}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </details>
               );
             })}

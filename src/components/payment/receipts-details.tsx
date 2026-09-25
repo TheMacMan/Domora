@@ -13,7 +13,7 @@ export function ReceiptsDetails({
   if (receipts.length < 2) return null;
   return (
     <details className="mt-0.5 text-xs font-normal text-muted-foreground group">
-      <summary className={`cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden hover:text-foreground ${align === "right" ? "text-right" : ""}`}>
+      <summary className={`cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden hover:text-foreground py-1.5 -my-1 text-primary ${align === "right" ? "text-right" : ""}`}>
         {receipts.length} Eingänge <span className="inline-block transition-transform group-open:rotate-180">▾</span>
       </summary>
       <ul className="mt-1 space-y-0.5">

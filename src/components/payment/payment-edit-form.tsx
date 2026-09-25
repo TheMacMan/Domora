@@ -56,6 +56,7 @@ export function PaymentEditForm({ paymentId, sollCents, receipts, notes, returnT
   }
 
   function removeReceipt(r: Receipt) {
+    if (!window.confirm(`Eingang vom ${formatDate(r.receivedAt)} über ${formatMoney(r.amountCents)} entfernen?`)) return;
     startTransition(async () => {
       const res = await deleteReceiptAction(r.id);
       if (!res.ok) {
@@ -112,7 +113,7 @@ export function PaymentEditForm({ paymentId, sollCents, receipts, notes, returnT
                   type="button"
                   onClick={() => removeReceipt(r)}
                   disabled={isPending}
-                  className="size-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                  className="size-10 -my-1 -mr-2 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
                   aria-label={`Eingang vom ${formatDate(r.receivedAt)} entfernen`}
                 >
                   <X className="size-4" />
@@ -125,13 +126,13 @@ export function PaymentEditForm({ paymentId, sollCents, receipts, notes, returnT
         <form onSubmit={addReceipt} className="rounded-lg border p-3 space-y-3">
           <p className="text-xs font-semibold text-muted-foreground">Eingang hinzufügen</p>
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <Label htmlFor="r-date">Datum</Label>
-              <Input id="r-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={isPending} className="h-9 text-base md:text-sm" />
+              <Input id="r-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={isPending} className="h-10 text-base md:h-9 md:text-sm" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="r-amount">Betrag (€)</Label>
-              <Input id="r-amount" type="text" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="550,00" disabled={isPending} className="h-9 text-base md:text-sm" />
+              <Input id="r-amount" type="text" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="550,00" disabled={isPending} className="h-10 text-base md:h-9 md:text-sm" />
             </div>
           </div>
           <Input
@@ -140,9 +141,9 @@ export function PaymentEditForm({ paymentId, sollCents, receipts, notes, returnT
             onChange={(e) => setNote(e.target.value)}
             placeholder="Notiz (optional), z. B. Zahler oder Verwendungszweck"
             disabled={isPending}
-            className="h-9 text-base md:text-sm"
+            className="h-10 text-base md:h-9 md:text-sm"
           />
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm py-1">
             <input type="checkbox" checked={isRefund} onChange={(e) => setIsRefund(e.target.checked)} disabled={isPending} className="size-4" />
             Rückzahlung an Mieter (z. B. Überzahlung)
           </label>

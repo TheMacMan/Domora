@@ -47,6 +47,7 @@ export function NkSettlementReceipts({ leaseId, receipts, fixedYear, suggestedCe
   }
 
   function remove(r: Receipt) {
+    if (!window.confirm(`${r.amountCents >= 0 ? "Nachzahlung" : "Erstattung"} vom ${formatDate(r.receivedAt)} über ${formatMoney(r.amountCents)} entfernen?`)) return;
     startTransition(async () => {
       const res = await deleteReceiptAction(r.id);
       if (!res.ok) { toast.error(res.error); return; }
@@ -71,7 +72,7 @@ export function NkSettlementReceipts({ leaseId, receipts, fixedYear, suggestedCe
                 type="button"
                 onClick={() => remove(r)}
                 disabled={isPending}
-                className="size-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                className="size-10 -my-1 -mr-2 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
                 aria-label="Eintrag entfernen"
               >
                 <X className="size-4" />
@@ -82,32 +83,37 @@ export function NkSettlementReceipts({ leaseId, receipts, fixedYear, suggestedCe
       )}
 
       <form onSubmit={add} className="rounded-lg border p-3 space-y-3">
-        <div className="flex gap-1 rounded-md border bg-muted/40 p-1 w-fit">
+        {/* Richtung: auf dem iPhone volle Breite, zwei gleich breite Hälften */}
+        <div className="grid grid-cols-2 gap-1 rounded-md border bg-muted/40 p-1 sm:inline-grid sm:w-auto">
           {(["in", "out"] as const).map((d) => (
             <button
               key={d}
               type="button"
               onClick={() => setDirection(d)}
-              className={`h-8 px-3 rounded text-xs font-medium transition-colors ${direction === d ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              className={`h-9 px-3 rounded text-sm font-medium transition-colors ${direction === d ? "bg-background shadow-sm" : "text-muted-foreground"}`}
             >
-              {d === "in" ? "Nachzahlung vom Mieter" : "Erstattung an Mieter"}
+              {d === "in" ? "Nachzahlung" : "Erstattung"}
             </button>
           ))}
         </div>
-        <div className={`grid gap-3 ${fixedYear ? "grid-cols-2" : "grid-cols-3"}`}>
+        <p className="text-xs text-muted-foreground -mt-1">
+          {direction === "in" ? "Mieter zahlt an dich nach." : "Du erstattest dem Mieter."}
+        </p>
+        {/* iPhone: max. 2 Spalten, damit das iOS-Datumsfeld nicht abgeschnitten wird */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {!fixedYear && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`nk-year-${leaseId}`}>NK-Jahr</Label>
-              <Input id={`nk-year-${leaseId}`} type="number" inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value)} disabled={isPending} className="h-9 text-base md:text-sm" />
+              <Input id={`nk-year-${leaseId}`} type="number" inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value)} disabled={isPending} className="h-10 text-base md:h-9 md:text-sm" />
             </div>
           )}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <Label htmlFor={`nk-date-${leaseId}`}>Datum</Label>
-            <Input id={`nk-date-${leaseId}`} type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={isPending} className="h-9 text-base md:text-sm" />
+            <Input id={`nk-date-${leaseId}`} type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={isPending} className="h-10 text-base md:h-9 md:text-sm" />
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className={`flex flex-col gap-1.5 ${!fixedYear ? "col-span-2 sm:col-span-1" : ""}`}>
             <Label htmlFor={`nk-amount-${leaseId}`}>Betrag (€)</Label>
-            <Input id={`nk-amount-${leaseId}`} type="text" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" disabled={isPending} className="h-9 text-base md:text-sm" />
+            <Input id={`nk-amount-${leaseId}`} type="text" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" disabled={isPending} className="h-10 text-base md:h-9 md:text-sm" />
           </div>
         </div>
         <Button type="submit" size="sm" loading={isPending}>
