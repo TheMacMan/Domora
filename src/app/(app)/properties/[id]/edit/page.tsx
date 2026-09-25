@@ -21,6 +21,7 @@ export default async function EditPropertyPage({ params }: { params: Promise<{ i
     purchasePriceTotalEur: property.purchasePriceTotal != null ? toEuros(property.purchasePriceTotal) : undefined,
     purchasePriceLandEur: property.purchasePriceLand != null ? toEuros(property.purchasePriceLand) : undefined,
     depreciationRate: property.depreciationPermille / 10,
+    depreciationOverrideEur: property.depreciationOverrideCents != null ? toEuros(property.depreciationOverrideCents) : undefined,
     referenceRentEurPerSqm: property.referenceRentCentsPerSqm != null ? toEuros(property.referenceRentCentsPerSqm) : undefined,
     notes: property.notes ?? undefined,
   };

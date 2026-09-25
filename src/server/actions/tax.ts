@@ -108,6 +108,7 @@ export async function getAnlageVAction(propertyId: string, year: number): Promis
     purchasePriceTotal: property.purchasePriceTotal,
     purchasePriceLand: property.purchasePriceLand,
     depreciationPermille: property.depreciationPermille,
+    afaOverrideCents: property.depreciationOverrideCents,
     payments: propertyPayments,
     loanPayments: propertyLoanPayments,
     expenses: propertyExpenses,

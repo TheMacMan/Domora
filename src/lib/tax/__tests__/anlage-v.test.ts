@@ -12,6 +12,30 @@ const BASE_INPUT = {
   expenses: [],
 };
 
+describe("AfA lt. Vorjahr (afaOverrideCents)", () => {
+  it("hat Vorrang vor der Berechnung aus Kaufpreis × Satz", () => {
+    // Berechnet wären 9.000 € (450.000 € × 2 %), lt. Vorjahr 6.123,45 €
+    const res = calcAnlageV({ ...BASE_INPUT, afaOverrideCents: 612345 });
+    expect(res.werbungskosten.afaCents).toBe(612345);
+    expect(res.werbungskosten.gesamtCents).toBe(612345);
+  });
+
+  it("greift auch ohne Kaufpreisdaten", () => {
+    const res = calcAnlageV({ ...BASE_INPUT, purchasePriceTotal: null, purchasePriceLand: null, afaOverrideCents: 250000 });
+    expect(res.werbungskosten.afaCents).toBe(250000);
+  });
+
+  it("ohne Wert (null) wird wie bisher berechnet", () => {
+    const res = calcAnlageV({ ...BASE_INPUT, afaOverrideCents: null });
+    expect(res.werbungskosten.afaCents).toBe(900000);
+  });
+
+  it("0 € lt. Vorjahr zählt als gesetzt (z. B. voll abgeschrieben)", () => {
+    const res = calcAnlageV({ ...BASE_INPUT, afaOverrideCents: 0 });
+    expect(res.werbungskosten.afaCents).toBe(0);
+  });
+});
+
 describe("receiptsToAnlageVPayments (Zuflussprinzip)", () => {
   const monat = { rentCents: 35000, serviceChargesCents: 20000 }; // 550 € Soll
 

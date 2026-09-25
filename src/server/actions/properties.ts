@@ -18,7 +18,7 @@ export async function createPropertyAction(data: PropertyFormInput): Promise<Act
   const parsed = propertySchema.safeParse(data);
   if (!parsed.success) return { ok: false, error: "Ungültige Eingabe." };
 
-  const { purchasePriceTotalEur, purchasePriceLandEur, depreciationRate, referenceRentEurPerSqm, ...rest } = parsed.data;
+  const { purchasePriceTotalEur, purchasePriceLandEur, depreciationRate, depreciationOverrideEur, referenceRentEurPerSqm, ...rest } = parsed.data;
   const id = createId();
 
   await db.insert(properties).values({
@@ -27,10 +27,11 @@ export async function createPropertyAction(data: PropertyFormInput): Promise<Act
     purchasePriceTotal: purchasePriceTotalEur != null ? toCents(purchasePriceTotalEur) : null,
     purchasePriceLand: purchasePriceLandEur != null ? toCents(purchasePriceLandEur) : null,
     depreciationPermille: Math.round(depreciationRate * 10),
+    depreciationOverrideCents: depreciationOverrideEur != null ? toCents(depreciationOverrideEur) : null,
     referenceRentCentsPerSqm: referenceRentEurPerSqm != null ? toCents(referenceRentEurPerSqm) : null,
   });
 
-  await writeAuditLog({ userId: user.id, action: "property.create", entity: "property", entityId: id, after: { ...rest, depreciationRate } });
+  await writeAuditLog({ userId: user.id, action: "property.create", entity: "property", entityId: id, after: { ...rest, depreciationRate, depreciationOverrideEur } });
 
   revalidatePath("/properties");
   return { ok: true };
@@ -45,18 +46,19 @@ export async function updatePropertyAction(id: string, data: PropertyFormInput):
   const before = await db.query.properties.findFirst({ where: eq(properties.id, id) });
   if (!before || before.deletedAt) return { ok: false, error: "Objekt nicht gefunden." };
 
-  const { purchasePriceTotalEur, purchasePriceLandEur, depreciationRate, referenceRentEurPerSqm, ...rest } = parsed.data;
+  const { purchasePriceTotalEur, purchasePriceLandEur, depreciationRate, depreciationOverrideEur, referenceRentEurPerSqm, ...rest } = parsed.data;
 
   await db.update(properties).set({
     ...rest,
     purchasePriceTotal: purchasePriceTotalEur != null ? toCents(purchasePriceTotalEur) : null,
     purchasePriceLand: purchasePriceLandEur != null ? toCents(purchasePriceLandEur) : null,
     depreciationPermille: Math.round(depreciationRate * 10),
+    depreciationOverrideCents: depreciationOverrideEur != null ? toCents(depreciationOverrideEur) : null,
     referenceRentCentsPerSqm: referenceRentEurPerSqm != null ? toCents(referenceRentEurPerSqm) : null,
     updatedAt: new Date(),
   }).where(eq(properties.id, id));
 
-  await writeAuditLog({ userId: user.id, action: "property.update", entity: "property", entityId: id, before: before as Record<string, unknown>, after: { ...rest, depreciationRate } });
+  await writeAuditLog({ userId: user.id, action: "property.update", entity: "property", entityId: id, before: before as Record<string, unknown>, after: { ...rest, depreciationRate, depreciationOverrideEur } });
 
   revalidatePath("/properties");
   revalidatePath(`/properties/${id}`);

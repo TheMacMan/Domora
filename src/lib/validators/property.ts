@@ -9,6 +9,8 @@ export const propertySchema = z.object({
   purchasePriceTotalEur: z.number().nonnegative().optional(),
   purchasePriceLandEur: z.number().nonnegative().optional(),
   depreciationRate: z.number().positive().max(10),
+  // AfA-Betrag pro Jahr lt. Vorjahr — hat Vorrang vor Kaufpreis × Satz
+  depreciationOverrideEur: z.number().nonnegative().optional(),
   // Vergleichsmiete €/m² — optional, frei pflegbar (Mietspiegel, Immo-Portal)
   referenceRentEurPerSqm: z.number().positive().max(100).optional(),
   notes: z.string().max(2000).optional(),

@@ -43,6 +43,10 @@ export type AnlageVInput = {
   purchasePriceTotal: number | null;  // Cents
   purchasePriceLand: number | null;   // Cents
   depreciationPermille: number;       // z.B. 20 = 2,0 %
+  // AfA-Betrag pro Jahr lt. Vorjahr (Cents). Hat Vorrang vor der Berechnung aus
+  // Kaufpreis × Satz — z. B. bei Erbfall/Erbauseinandersetzung, wo die AfA nicht
+  // in das einfache Schema passt. null/undefined = berechnen.
+  afaOverrideCents?: number | null;
   // Zahlungseingänge: alle Payments mit paidAt im Jahr
   payments: Array<{
     paidCents: number | null;
@@ -170,11 +174,9 @@ export function calcAnlageV(input: AnlageVInput): AnlageVErgebnis {
       .reduce((s, e) => s + e.amountCents, 0);
   }
 
-  const afaCents = calcAfA(
-    input.purchasePriceTotal,
-    input.purchasePriceLand,
-    input.depreciationPermille,
-  );
+  const afaCents = input.afaOverrideCents != null
+    ? input.afaOverrideCents
+    : calcAfA(input.purchasePriceTotal, input.purchasePriceLand, input.depreciationPermille);
 
   // Sonstige Betriebskosten = alle bk_* außer Grundsteuer und Versicherung
   const otherBkCats = [

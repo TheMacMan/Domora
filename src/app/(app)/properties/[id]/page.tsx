@@ -38,7 +38,10 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
 
   const totalArea = property.units.reduce((s, u) => s + u.livingArea, 0);
   const afaBase = gebaeudanteil ?? property.purchasePriceTotal;
-  const afaPerYear = afaBase != null ? Math.round(afaBase * property.depreciationPermille) / 1000 : null;
+  const afaCalculated = afaBase != null ? Math.round(afaBase * property.depreciationPermille) / 1000 : null;
+  // Maßgeblich für die Anlage V: Betrag lt. Vorjahr hat Vorrang vor der Berechnung
+  const afaFromPriorYear = property.depreciationOverrideCents;
+  const afaPerYear = afaFromPriorYear ?? afaCalculated;
 
   async function handleDelete() {
     "use server";
@@ -102,7 +105,22 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
           />
           <Row
             label="AfA pro Jahr"
-            value={afaPerYear != null ? formatMoney(afaPerYear) : null}
+            value={
+              afaPerYear != null ? (
+                <span>
+                  {formatMoney(afaPerYear)}
+                  {afaFromPriorYear != null && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">
+                      lt. Vorjahr{afaCalculated != null && afaCalculated !== afaFromPriorYear ? ` · berechnet wären ${formatMoney(afaCalculated)}` : ""}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span className="text-xs text-amber-600">
+                  keine AfA — Kaufpreis oder „AfA pro Jahr lt. Vorjahr" unter Bearbeiten erfassen
+                </span>
+              )
+            }
           />
           <Row
             label="AfA pro Monat"

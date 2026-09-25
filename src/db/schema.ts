@@ -37,6 +37,8 @@ export const properties = sqliteTable("properties", {
   purchasePriceTotal: integer("purchase_price_total"), // Cents
   purchasePriceLand: integer("purchase_price_land"), // Cents, Grund-/Boden-Anteil
   depreciationPermille: integer("depreciation_permille").notNull().default(20), // 20 = 2,0 %
+  // AfA-Betrag pro Jahr lt. Vorjahr (Cents). Gesetzt → Vorrang vor Kaufpreis × Satz.
+  depreciationOverrideCents: integer("depreciation_override_cents"),
   // Vergleichsmiete €/m² (Cents/m²) — optional, für Mietentwicklung/Erhöhungspotential
   referenceRentCentsPerSqm: integer("reference_rent_cents_per_sqm"),
   notes: text("notes"),
