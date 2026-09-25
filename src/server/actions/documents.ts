@@ -13,17 +13,27 @@ import {
   documentMetaSchema,
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
+  ENTITY_TYPES,
+  GENERAL_ENTITY_ID,
   type EntityType,
 } from "@/lib/validators/document";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 // Detailseite je Zuordnung (Plural passt nicht bei "property" → "properties")
-const ENTITY_PATH: Record<EntityType, string> = { tenant: "/tenants", property: "/properties", lease: "/leases" };
+const ENTITY_PATH: Record<EntityType, string> = { tenant: "/tenants", property: "/properties", lease: "/leases", general: "/documents" };
 
 function revalidateDocumentViews(entityType: EntityType, entityId: string) {
-  revalidatePath(`${ENTITY_PATH[entityType]}/${entityId}`);
+  if (entityType !== "general") revalidatePath(`${ENTITY_PATH[entityType]}/${entityId}`);
   revalidatePath("/documents");
+}
+
+// entityType/entityId landen im Dateipfad → nur bekannte Typen und cuid2-IDs zulassen
+// (verhindert Pfad-Manipulation wie "../").
+function isValidEntity(entityType: string, entityId: string): entityType is EntityType {
+  if (!(ENTITY_TYPES as readonly string[]).includes(entityType)) return false;
+  if (entityType === "general") return entityId === GENERAL_ENTITY_ID;
+  return /^[a-z0-9]{10,40}$/.test(entityId);
 }
 
 function uploadsDir(entityType: EntityType, entityId: string) {
@@ -43,6 +53,8 @@ export async function uploadDocumentAction(
   formData: FormData
 ): Promise<ActionResult> {
   const user = await requireUser();
+
+  if (!isValidEntity(entityType, entityId)) return { ok: false, error: "Ungültige Zuordnung." };
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -98,6 +110,7 @@ export async function uploadDocumentAction(
 
 export async function deleteDocumentAction(id: string, entityType: EntityType, entityId: string): Promise<ActionResult> {
   const user = await requireUser();
+  if (!isValidEntity(entityType, entityId)) return { ok: false, error: "Ungültige Zuordnung." };
 
   const doc = await db.query.documents.findFirst({ where: eq(documents.id, id) });
   if (!doc || doc.deletedAt) return { ok: false, error: "Dokument nicht gefunden." };
@@ -106,7 +119,8 @@ export async function deleteDocumentAction(id: string, entityType: EntityType, e
   await db.update(documents).set({ deletedAt: new Date() }).where(eq(documents.id, id));
 
   try {
-    const filePath = path.join(uploadsDir(entityType, entityId), doc.storedName);
+    // Pfad aus dem gespeicherten Dokument, nicht aus Aufrufer-Werten
+    const filePath = path.join(uploadsDir(doc.entityType as EntityType, doc.entityId), doc.storedName);
     await unlink(filePath);
   } catch {
     // File already gone — not a hard error
@@ -152,9 +166,10 @@ export async function getAllDocumentsAction() {
     const names = l.leaseTenants.map((lt) => lt.tenant.lastName).join(" / ");
     label.set(`lease:${l.id}`, `Vertrag ${l.unit.name}${names ? ` · ${names}` : ""}`);
   }
+  label.set(`general:${GENERAL_ENTITY_ID}`, "Allgemein");
   return docs.map((d) => ({
     ...d,
     entityLabel: label.get(`${d.entityType}:${d.entityId}`) ?? "(unbekannt)",
-    entityHref: `${ENTITY_PATH[d.entityType as EntityType] ?? ""}/${d.entityId}`,
+    entityHref: d.entityType === "general" ? "/documents" : `${ENTITY_PATH[d.entityType as EntityType] ?? ""}/${d.entityId}`,
   }));
 }

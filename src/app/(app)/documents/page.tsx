@@ -3,7 +3,8 @@ import { FileText, ExternalLink } from "lucide-react";
 import { getAllDocumentsAction } from "@/server/actions/documents";
 import { Badge } from "@/components/ui/badge";
 import { formatDateObj } from "@/lib/dates";
-import { DOCUMENT_TAGS } from "@/lib/validators/document";
+import { DOCUMENT_TAGS, GENERAL_ENTITY_ID } from "@/lib/validators/document";
+import { DocumentsSection } from "@/components/document/documents-section";
 
 export const metadata = { title: "Dokumente – Domora" };
 
@@ -13,7 +14,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const ENTITY_KIND: Record<string, string> = { tenant: "Mieter", property: "Objekt", lease: "Vertrag" };
+const ENTITY_KIND: Record<string, string> = { tenant: "Mieter", property: "Objekt", lease: "Vertrag", general: "Zuordnung" };
 
 // Übersicht aller Dokumente. Hochgeladen wird beim jeweiligen Mieter, Objekt oder Vertrag.
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ tag?: string }> }) {
@@ -33,12 +34,24 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dokumente</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Alle Dokumente im Überblick. Hochladen geht beim jeweiligen{" "}
+          Objektübergreifendes lädst du hier hoch. Dokumente zu einem bestimmten{" "}
           <Link href="/properties" className="underline">Objekt</Link>,{" "}
           <Link href="/leases" className="underline">Vertrag</Link> oder{" "}
-          <Link href="/tenants" className="underline">Mieter</Link> (unten auf der Seite).
+          <Link href="/tenants" className="underline">Mieter</Link> dort (unten auf der Seite).
         </p>
       </div>
+
+      <div className="rounded-xl border bg-card p-4">
+        <DocumentsSection
+          entityType="general"
+          entityId={GENERAL_ENTITY_ID}
+          revalidateUrl="/documents"
+          title="Allgemeine Dokumente"
+          description="Objektübergreifend — z. B. Steuererklärungen, Bescheide, Bank- und Versicherungsunterlagen."
+        />
+      </div>
+
+      <h2 className="text-base font-semibold">Alle Dokumente</h2>
 
       {usedTags.length > 1 && (
         <div className="flex flex-wrap gap-2">
