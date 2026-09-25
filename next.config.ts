@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.1.239"],
   serverExternalPackages: ["@react-pdf/renderer"],
 
+  // Dokument-Upload läuft über eine Server Action. Standardlimit ist 1 MB —
+  // die App erlaubt bis 20 MB je Datei (MAX_FILE_SIZE_BYTES) + Formular-Overhead.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "21mb",
+    },
+  },
+
   // Redirects für deutsche Alt-URLs auf das englische Schema.
   // Permanent (308), damit Browser-/Bookmark-Caches die neuen URLs übernehmen.
   async redirects() {

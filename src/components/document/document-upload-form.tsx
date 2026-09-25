@@ -105,9 +105,12 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
         fd.append("tag", tag);
         if (notes) fd.append("notes", notes);
 
-        const result = await uploadDocumentAction(entityType, entityId, fd);
-        if (!result.ok) {
-          errors.push(`${file.name}: ${result.error}`);
+        // Netzwerk-/Serverfehler (z. B. Größenlimit) abfangen statt die Seite abstürzen zu lassen
+        try {
+          const result = await uploadDocumentAction(entityType, entityId, fd);
+          if (!result.ok) errors.push(`${file.name}: ${result.error}`);
+        } catch {
+          errors.push(`${file.name}: Hochladen fehlgeschlagen (Server-Fehler). Bitte erneut versuchen.`);
         }
         setUploadState({ kind: "uploading", done: i + 1, total: selectedFiles.length });
       }
