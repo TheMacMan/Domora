@@ -18,6 +18,14 @@ import {
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
+// Detailseite je Zuordnung (Plural passt nicht bei "property" → "properties")
+const ENTITY_PATH: Record<EntityType, string> = { tenant: "/tenants", property: "/properties", lease: "/leases" };
+
+function revalidateDocumentViews(entityType: EntityType, entityId: string) {
+  revalidatePath(`${ENTITY_PATH[entityType]}/${entityId}`);
+  revalidatePath("/documents");
+}
+
 function uploadsDir(entityType: EntityType, entityId: string) {
   return path.join(process.cwd(), "data", "uploads", entityType, entityId);
 }
@@ -84,7 +92,7 @@ export async function uploadDocumentAction(
     after: { filename: file.name, entityType, entityId, tag: metaParsed.data.tag },
   });
 
-  revalidatePath(`/${entityType}s/${entityId}`);
+  revalidateDocumentViews(entityType, entityId);
   return { ok: true };
 }
 
@@ -112,7 +120,7 @@ export async function deleteDocumentAction(id: string, entityType: EntityType, e
     before: doc as Record<string, unknown>,
   });
 
-  revalidatePath(`/${entityType}s/${entityId}`);
+  revalidateDocumentViews(entityType, entityId);
   return { ok: true };
 }
 
@@ -126,4 +134,27 @@ export async function getDocumentsAction(entityType: EntityType, entityId: strin
     ),
     orderBy: (d, { desc }) => [desc(d.createdAt)],
   });
+}
+
+// Alle Dokumente mit lesbarer Zuordnung (für die Übersichtsseite /documents)
+export async function getAllDocumentsAction() {
+  await requireUser();
+  const [docs, tenantRows, propertyRows, leaseRows] = await Promise.all([
+    db.query.documents.findMany({ where: isNull(documents.deletedAt), orderBy: (d, { desc }) => [desc(d.createdAt)] }),
+    db.query.tenants.findMany(),
+    db.query.properties.findMany(),
+    db.query.leases.findMany({ with: { unit: true, leaseTenants: { with: { tenant: true } } } }),
+  ]);
+  const label = new Map<string, string>();
+  for (const t of tenantRows) label.set(`tenant:${t.id}`, `${t.lastName}, ${t.firstName}`);
+  for (const p of propertyRows) label.set(`property:${p.id}`, `${p.street}, ${p.city}`);
+  for (const l of leaseRows) {
+    const names = l.leaseTenants.map((lt) => lt.tenant.lastName).join(" / ");
+    label.set(`lease:${l.id}`, `Vertrag ${l.unit.name}${names ? ` · ${names}` : ""}`);
+  }
+  return docs.map((d) => ({
+    ...d,
+    entityLabel: label.get(`${d.entityType}:${d.entityId}`) ?? "(unbekannt)",
+    entityHref: `${ENTITY_PATH[d.entityType as EntityType] ?? ""}/${d.entityId}`,
+  }));
 }

@@ -8,6 +8,7 @@ export const DOCUMENT_TAGS = [
   "Übergabeprotokoll",
   "Beleg",
   "Korrespondenz",
+  "Steuer",
   "Sonstiges",
 ] as const;
 

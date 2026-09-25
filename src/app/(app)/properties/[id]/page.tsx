@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { DepreciationItems } from "@/components/property/depreciation-items";
+import { DocumentsSection } from "@/components/document/documents-section";
 
 export const metadata = { title: "Objekt – Domora" };
 
@@ -183,6 +184,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
           </div>
         )}
       </div>
+
+      <DocumentsSection entityType="property" entityId={property.id} revalidateUrl={`/properties/${property.id}`} />
 
       <div>
         <Button asChild variant="ghost" size="sm">
