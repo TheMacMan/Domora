@@ -126,6 +126,9 @@ export const payments = sqliteTable("payments", {
 });
 
 // Mietverträge
+export const SERVICE_CHARGES_TYPES = ["prepayment", "flat"] as const;
+export type ServiceChargesType = (typeof SERVICE_CHARGES_TYPES)[number];
+
 export const leases = sqliteTable("leases", {
   id: text("id").primaryKey(),
   unitId: text("unit_id")
@@ -134,7 +137,12 @@ export const leases = sqliteTable("leases", {
   startDate: text("start_date").notNull(), // YYYY-MM-DD
   endDate: text("end_date"), // YYYY-MM-DD, null = unbefristet
   rentCents: integer("rent_cents").notNull(), // Kaltmiete
-  serviceChargesCents: integer("service_charges_cents"), // NK-Vorauszahlung
+  serviceChargesCents: integer("service_charges_cents"), // NK-Vorauszahlung bzw. NK-Pauschale (siehe serviceChargesType)
+  // "prepayment" = Vorauszahlung, wird jährlich abgerechnet
+  // "flat"       = Pauschale, keine Abrechnung (nur interne Kostendeckungsprüfung)
+  serviceChargesType: text("service_charges_type", { enum: SERVICE_CHARGES_TYPES })
+    .notNull()
+    .default("prepayment"),
   depositCents: integer("deposit_cents"), // Kaution (fixer Betrag)
   depositFactor: real("deposit_factor"), // Kaution als Vielfaches der Kaltmiete (z.B. 3.0)
   rentType: text("rent_type", { enum: ["fixed", "index", "graduated"] })
@@ -522,7 +530,10 @@ export const nkAbrechnungLeases = sqliteTable("nk_abrechnung_leases", {
   monthsActive: integer("months_active").notNull(),       // 1..12
   kostenAnteilCents: integer("kosten_anteil_cents").notNull(),
   vorauszahlungenCents: integer("vorauszahlungen_cents").notNull(),
-  saldoCents: integer("saldo_cents").notNull(),           // > 0 = Nachzahlung, < 0 = Erstattung
+  saldoCents: integer("saldo_cents").notNull(),           // > 0 = Nachzahlung, < 0 = Erstattung (bei Pauschale: > 0 = Unterdeckung, < 0 = Überdeckung)
+  // Momentaufnahme beim Erstellen: Vertrag hatte NK-Pauschale → keine Abrechnung an den Mieter,
+  // Saldo ist nur die interne Über-/Unterdeckung der Pauschale.
+  isFlatRate: integer("is_flat_rate", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

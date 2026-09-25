@@ -16,6 +16,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const la = abr.leaseAbrechnungen.find((x) => x.id === leaseAbrId);
   if (!la) return new NextResponse("Mietverhältnis nicht gefunden", { status: 404 });
+  // NK-Pauschale: keine Abrechnung an den Mieter → kein PDF
+  if (la.isFlatRate) return new NextResponse("NK-Pauschale: keine Nebenkostenabrechnung für dieses Mietverhältnis", { status: 400 });
 
   const tenants = la.lease.leaseTenants.map((lt) => `${lt.tenant.firstName} ${lt.tenant.lastName}`);
 

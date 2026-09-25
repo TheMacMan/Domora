@@ -31,6 +31,7 @@ export default async function EditLeasePage({ params }: { params: Promise<{ id: 
     endDate: lease.endDate ?? "",
     rentEur: toEuros(lease.rentCents),
     serviceChargesEur: lease.serviceChargesCents != null ? toEuros(lease.serviceChargesCents) : undefined,
+    serviceChargesType: lease.serviceChargesType,
     depositMode,
     depositEur: depositMode === "fixed" && lease.depositCents != null ? toEuros(lease.depositCents) : undefined,
     depositFactor: lease.depositFactor ?? undefined,

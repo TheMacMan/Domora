@@ -115,8 +115,10 @@ export async function createNkAbrechnungAction(propertyId: string, year: number)
         unitId: u.unitId,
         monthsActive: months,
         kostenAnteilCents: 0,     // wird gleich gefüllt
-        vorauszahlungenCents: vorauszahlungen,
+        vorauszahlungenCents: vorauszahlungen, // bei Pauschale: vereinbarte Jahrespauschale
         saldoCents: 0,
+        // Pauschale: Kostenanteil wird ermittelt (Kostendeckungsprüfung), aber nicht abgerechnet
+        isFlatRate: lease.serviceChargesType === "flat",
       });
     }
   }

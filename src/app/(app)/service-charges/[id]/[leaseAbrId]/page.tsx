@@ -87,6 +87,14 @@ export default async function NkLeaseDetailPage({ params }: { params: Promise<{ 
         </div>
       </section>
 
+      {la.isFlatRate ? (
+        <FlatRateCheck
+          kostenCents={la.kostenAnteilCents}
+          pauschaleCents={la.vorauszahlungenCents}
+          months={la.monthsActive}
+        />
+      ) : (
+      <>
       {/* Abrechnung */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border bg-card px-4 py-3">
@@ -118,6 +126,55 @@ export default async function NkLeaseDetailPage({ params }: { params: Promise<{ 
           PDF erzeugen
         </a>
       </Button>
+      </>
+      )}
     </div>
+  );
+}
+
+// NK-Pauschale: keine Abrechnung an den Mieter, nur interne Prüfung, ob die
+// vereinbarte Pauschale die tatsächlichen Kosten deckt.
+function FlatRateCheck({ kostenCents, pauschaleCents, months }: { kostenCents: number; pauschaleCents: number; months: number }) {
+  const m = Math.max(months, 1);
+  const diffCents = pauschaleCents - kostenCents; // > 0 = Überdeckung, < 0 = Unterdeckung
+  const kostenProMonat = Math.round(kostenCents / m);
+  const pauschaleProMonat = Math.round(pauschaleCents / m);
+  const covered = diffCents >= 0;
+
+  return (
+    <>
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-base font-semibold">Kostendeckung der Pauschale</h2>
+          <Badge variant="secondary" className="text-[10px]">Pauschale · keine Abrechnung</Badge>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl border bg-card px-4 py-3">
+            <p className="text-xs text-muted-foreground mb-1">Anteil Kosten</p>
+            <p className="text-lg font-bold tabular-nums">{formatMoney(kostenCents)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">≈ {formatMoney(kostenProMonat)} / Monat</p>
+          </div>
+          <div className="rounded-xl border bg-card px-4 py-3">
+            <p className="text-xs text-muted-foreground mb-1">Pauschale (Soll)</p>
+            <p className="text-lg font-bold tabular-nums">{formatMoney(pauschaleCents)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{formatMoney(pauschaleProMonat)} / Monat · {months} Monate</p>
+          </div>
+          <div className={`rounded-xl border px-4 py-3 ${covered ? "bg-emerald-500/5 border-emerald-500/30" : "bg-amber-500/5 border-amber-500/30"}`}>
+            <p className="text-xs text-muted-foreground mb-1">{covered ? "Überdeckung" : "Unterdeckung"}</p>
+            <p className={`text-lg font-bold tabular-nums ${covered ? "text-emerald-600" : "text-amber-600"}`}>
+              {formatMoney(Math.abs(diffCents))}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {covered ? "Pauschale deckt die Kosten" : "Pauschale deckt die Kosten nicht"} · kostendeckend wären ≈ {formatMoney(kostenProMonat)} / Monat
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <div className="rounded-md bg-muted/30 border px-4 py-3 text-xs text-muted-foreground space-y-1">
+        <p><strong className="text-foreground">Keine Abrechnung an den Mieter:</strong> Bei einer NK-Pauschale gibt es weder Nachzahlung noch Erstattung. Diese Übersicht dient nur deiner Prüfung.</p>
+        <p><strong className="text-foreground">Anpassung:</strong> Eine Erhöhung ist nur möglich, wenn der Mietvertrag sie vorsieht und die Kosten gestiegen sind (§ 560 Abs. 1 BGB). Sinken die Kosten, ist die Pauschale entsprechend herabzusetzen (§ 560 Abs. 3 BGB).</p>
+      </div>
+    </>
   );
 }

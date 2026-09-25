@@ -45,10 +45,11 @@ export function LeaseForm(props: Props) {
     defaultValues:
       props.mode === "edit"
         ? props.defaultValues
-        : { rentType: "fixed", tenantIds: [], depositMode: "fixed" },
+        : { rentType: "fixed", serviceChargesType: "prepayment", tenantIds: [], depositMode: "fixed" },
   });
 
   const depositMode = useWatch({ control, name: "depositMode" });
+  const serviceChargesType = useWatch({ control, name: "serviceChargesType" });
   const rentEur = useWatch({ control, name: "rentEur" });
   const depositFactor = useWatch({ control, name: "depositFactor" });
 
@@ -160,7 +161,9 @@ export function LeaseForm(props: Props) {
           {errors.rentEur && <p className="text-xs text-destructive">{errors.rentEur.message}</p>}
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="serviceChargesEur">NK-Vorauszahlung (€)</Label>
+          <Label htmlFor="serviceChargesEur">
+            {serviceChargesType === "flat" ? "NK-Pauschale (€)" : "NK-Vorauszahlung (€)"}
+          </Label>
           <Input
             id="serviceChargesEur"
             type="number"
@@ -171,6 +174,18 @@ export function LeaseForm(props: Props) {
             disabled={isPending}
           />
           {errors.serviceChargesEur && <p className="text-xs text-destructive">{errors.serviceChargesEur.message}</p>}
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="serviceChargesType">Nebenkosten-Art</Label>
+          <select id="serviceChargesType" {...register("serviceChargesType")} disabled={isPending} className={selectClass}>
+            <option value="prepayment">Vorauszahlung (wird jährlich abgerechnet)</option>
+            <option value="flat">Pauschale (keine Abrechnung)</option>
+          </select>
+          {serviceChargesType === "flat" && (
+            <p className="text-xs text-muted-foreground">
+              Keine NK-Abrechnung an den Mieter. Die Abrechnung zeigt nur intern, ob die Pauschale die Kosten deckt.
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">

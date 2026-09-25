@@ -164,9 +164,14 @@ export default async function NkAbrechnungDetailPage({ params }: { params: Promi
                       <Private>{tenants}</Private>
                     </p>
                   </div>
-                  <Badge variant="outline" className="shrink-0 text-[10px]">
-                    {la.monthsActive}/12 Mon.
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {la.isFlatRate && (
+                      <Badge variant="secondary" className="text-[10px]">Pauschale</Badge>
+                    )}
+                    <Badge variant="outline" className="text-[10px]">
+                      {la.monthsActive}/12 Mon.
+                    </Badge>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-xs">
                   <div>
@@ -174,12 +179,23 @@ export default async function NkAbrechnungDetailPage({ params }: { params: Promi
                     <p className="font-medium tabular-nums">{formatMoney(la.kostenAnteilCents)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Vorausz.</p>
+                    <p className="text-muted-foreground">{la.isFlatRate ? "Pauschale" : "Vorausz."}</p>
                     <p className="font-medium tabular-nums">{formatMoney(la.vorauszahlungenCents)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Saldo</p>
-                    <p className={`font-semibold tabular-nums ${saldoColor}`}>{formatMoney(la.saldoCents)}</p>
+                    {la.isFlatRate ? (
+                      <>
+                        <p className="text-muted-foreground">{la.saldoCents > 0 ? "Unterdeckung" : "Überdeckung"}</p>
+                        <p className={`font-semibold tabular-nums ${la.saldoCents > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                          {formatMoney(Math.abs(la.saldoCents))}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-muted-foreground">Saldo</p>
+                        <p className={`font-semibold tabular-nums ${saldoColor}`}>{formatMoney(la.saldoCents)}</p>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">

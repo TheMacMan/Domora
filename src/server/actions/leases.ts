@@ -26,6 +26,7 @@ function toDb(data: LeaseFormInput) {
     endDate: data.endDate || null,
     rentCents,
     serviceChargesCents: data.serviceChargesEur != null ? toCents(data.serviceChargesEur) : null,
+    serviceChargesType: data.serviceChargesType,
     depositCents,
     depositFactor,
     rentType: data.rentType,

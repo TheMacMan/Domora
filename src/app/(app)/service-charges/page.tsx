@@ -40,7 +40,8 @@ export default async function NkAbrechnungenListPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {list.map((a) => {
             const totalKosten = a.leaseAbrechnungen.reduce((s, la) => s + la.kostenAnteilCents, 0);
-            const totalSaldo = a.leaseAbrechnungen.reduce((s, la) => s + la.saldoCents, 0);
+            // Pauschal-Mieter werden nicht abgerechnet → nicht in die Nachzahlungs-/Erstattungssumme
+            const totalSaldo = a.leaseAbrechnungen.reduce((s, la) => s + (la.isFlatRate ? 0 : la.saldoCents), 0);
             return (
               <Link
                 key={a.id}

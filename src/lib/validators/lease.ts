@@ -26,6 +26,8 @@ export const leaseSchema = z.object({
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
   rentEur: z.number({ required_error: "Kaltmiete erforderlich" }).positive("Kaltmiete muss positiv sein"),
   serviceChargesEur: z.number().nonnegative().optional(),
+  // Vorauszahlung (jährliche NK-Abrechnung) oder Pauschale (keine Abrechnung)
+  serviceChargesType: z.enum(["prepayment", "flat"]),
   depositMode: z.enum(["fixed", "factor"]).optional(),
   depositEur: z.number().nonnegative().optional(),
   depositFactor: z.number().positive().max(6, "Faktor max. 6").optional(),

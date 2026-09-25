@@ -145,7 +145,7 @@ export default async function LeasePage({ params }: { params: Promise<{ id: stri
                 {formatMoney(coldTotal)}
                 {currentSCCents != null && (
                   <span className="text-base font-normal text-muted-foreground ml-2">
-                    + {formatMoney(currentSCCents)} NK = {formatMoney(warmTotal)} warm
+                    + {formatMoney(currentSCCents)} {lease.serviceChargesType === "flat" ? "NK-Pauschale" : "NK"} = {formatMoney(warmTotal)} warm
                   </span>
                 )}
               </p>
