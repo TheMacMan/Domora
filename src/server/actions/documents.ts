@@ -1,6 +1,6 @@
 "use server";
 
-import { mkdir, writeFile, unlink } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { createId } from "@paralleldrive/cuid2";
 import { eq, isNull, and } from "drizzle-orm";
@@ -115,16 +115,9 @@ export async function deleteDocumentAction(id: string, entityType: EntityType, e
   const doc = await db.query.documents.findFirst({ where: eq(documents.id, id) });
   if (!doc || doc.deletedAt) return { ok: false, error: "Dokument nicht gefunden." };
 
-  // Soft delete first, then attempt file removal
+  // Nur Soft-Delete: Die Datei bleibt erhalten (Aufbewahrungspflicht für Belege,
+  // i. d. R. 10 Jahre). Endgültiges Löschen erst durch den Aufbewahrungs-Cleanup.
   await db.update(documents).set({ deletedAt: new Date() }).where(eq(documents.id, id));
-
-  try {
-    // Pfad aus dem gespeicherten Dokument, nicht aus Aufrufer-Werten
-    const filePath = path.join(uploadsDir(doc.entityType as EntityType, doc.entityId), doc.storedName);
-    await unlink(filePath);
-  } catch {
-    // File already gone — not a hard error
-  }
 
   await writeAuditLog({
     userId: user.id,

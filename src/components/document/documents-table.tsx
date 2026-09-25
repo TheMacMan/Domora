@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocumentAction } from "@/server/actions/documents";
+import { toast } from "@/lib/toast";
 import { DocumentPreview } from "./document-preview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,9 +42,15 @@ export function DocumentsTable({ docs, entityType, entityId }: Props) {
   const [isPending, startTransition] = useTransition();
   const [preview, setPreview] = useState<PreviewState>(null);
 
-  function handleDelete(docId: string) {
+  function handleDelete(docId: string, filename: string) {
+    if (!window.confirm(`„${filename}" entfernen?\n\nDas Dokument wird ausgeblendet, die Datei bleibt für die Aufbewahrungsfrist archiviert.`)) return;
     startTransition(async () => {
-      await deleteDocumentAction(docId, entityType, entityId);
+      const res = await deleteDocumentAction(docId, entityType, entityId);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Dokument entfernt");
       router.refresh();
     });
   }
@@ -134,7 +141,7 @@ export function DocumentsTable({ docs, entityType, entityId }: Props) {
                         type="button"
                         className="size-7 text-muted-foreground hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         disabled={isPending}
-                        onClick={() => handleDelete(doc.id)}
+                        onClick={() => handleDelete(doc.id, doc.filename)}
                         title="Löschen"
                       >
                         <Trash2 className="size-3.5" />
