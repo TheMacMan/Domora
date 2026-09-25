@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { DepreciationItems } from "@/components/property/depreciation-items";
 
 export const metadata = { title: "Objekt – Domora" };
 
@@ -39,9 +40,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
   const totalArea = property.units.reduce((s, u) => s + u.livingArea, 0);
   const afaBase = gebaeudanteil ?? property.purchasePriceTotal;
   const afaCalculated = afaBase != null ? Math.round(afaBase * property.depreciationPermille) / 1000 : null;
-  // Maßgeblich für die Anlage V: Betrag lt. Vorjahr hat Vorrang vor der Berechnung
-  const afaFromPriorYear = property.depreciationOverrideCents;
-  const afaPerYear = afaFromPriorYear ?? afaCalculated;
+  const hasAfaItems = property.depreciationItems.length > 0;
 
   async function handleDelete() {
     "use server";
@@ -89,44 +88,40 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
         </dl>
       </div>
 
-      {/* AfA-Berechnung */}
+      {/* AfA — Posten wie ELSTER Anlage V, Zeile 33 */}
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="px-5 py-3 border-b">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Abschreibung (AfA)</p>
         </div>
-        <dl className="px-6 py-2">
-          <Row
-            label="AfA-Satz"
-            value={`${(property.depreciationPermille / 10).toLocaleString("de-DE", { minimumFractionDigits: 1 })} % (linear)`}
+        <div className="px-4 py-4 space-y-4">
+          <DepreciationItems
+            propertyId={property.id}
+            items={property.depreciationItems.map((d) => ({
+              id: d.id,
+              method: d.method,
+              rateBps: d.rateBps,
+              basisMode: d.basisMode,
+              explanation: d.explanation,
+              annualCents: d.annualCents,
+              fromYear: d.fromYear,
+              toYear: d.toYear,
+            }))}
           />
-          <Row
-            label="AfA-Basis"
-            value={afaBase != null ? formatMoney(afaBase) : <span className="text-xs text-muted-foreground">Kaufpreis nicht vollständig</span>}
-          />
-          <Row
-            label="AfA pro Jahr"
-            value={
-              afaPerYear != null ? (
-                <span>
-                  {formatMoney(afaPerYear)}
-                  {afaFromPriorYear != null && (
-                    <span className="ml-1.5 text-xs text-muted-foreground">
-                      lt. Vorjahr{afaCalculated != null && afaCalculated !== afaFromPriorYear ? ` · berechnet wären ${formatMoney(afaCalculated)}` : ""}
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span className="text-xs text-amber-600">
-                  keine AfA — Kaufpreis oder „AfA pro Jahr lt. Vorjahr" unter Bearbeiten erfassen
-                </span>
-              )
-            }
-          />
-          <Row
-            label="AfA pro Monat"
-            value={afaPerYear != null ? formatMoney(Math.round(afaPerYear / 12)) : null}
-          />
-        </dl>
+          {!hasAfaItems && (
+            <div className="rounded-md bg-muted/30 border px-3 py-2 text-xs text-muted-foreground space-y-0.5">
+              <p className="font-medium text-foreground">Ohne Posten berechnet die App die AfA aus dem Kaufpreis:</p>
+              <p>
+                {(property.depreciationPermille / 10).toLocaleString("de-DE", { minimumFractionDigits: 1 })} % linear von{" "}
+                {afaBase != null ? formatMoney(afaBase) : "–"} ={" "}
+                {afaCalculated != null ? (
+                  <span className="font-medium text-foreground">{formatMoney(afaCalculated)} pro Jahr</span>
+                ) : (
+                  <span className="text-amber-600">keine AfA — Kaufpreis fehlt</span>
+                )}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Wohneinheiten – kompakte Übersicht */}

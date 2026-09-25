@@ -122,6 +122,19 @@ export function receiptsToAnlageVPayments(
   return out;
 }
 
+// AfA eines Jahres aus den AfA-Posten des Objekts (ELSTER Zeile 33).
+// Gibt es Posten, zählt die Summe der im Jahr gültigen (auch 0, wenn keiner gilt);
+// ohne Posten null → Aufrufer fällt auf die Berechnung aus dem Kaufpreis zurück.
+export function depreciationItemsSumForYear(
+  items: Array<{ annualCents: number; fromYear: number | null; toYear: number | null }>,
+  year: number,
+): number | null {
+  if (items.length === 0) return null;
+  return items
+    .filter((i) => (i.fromYear == null || i.fromYear <= year) && (i.toYear == null || i.toYear >= year))
+    .reduce((s, i) => s + i.annualCents, 0);
+}
+
 export function calcAfA(
   purchasePriceTotal: number | null,
   purchasePriceLand: number | null,

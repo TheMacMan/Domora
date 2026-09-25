@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcAfA, calcAnlageV, buildLoanInterestPayments, receiptsToAnlageVPayments } from "../anlage-v";
+import { calcAfA, calcAnlageV, buildLoanInterestPayments, receiptsToAnlageVPayments, depreciationItemsSumForYear } from "../anlage-v";
 
 const BASE_INPUT = {
   propertyId: "prop1",
@@ -11,6 +11,41 @@ const BASE_INPUT = {
   loanPayments: [],
   expenses: [],
 };
+
+describe("depreciationItemsSumForYear (AfA-Posten)", () => {
+  // Hörstein lt. Anlage V 2024
+  const hoerstein = [
+    { annualCents: 119800, fromYear: null, toYear: null }, // degressiv 1,25 %
+    { annualCents: 444800, fromYear: null, toYear: null }, // linear, AK 222.397 €
+    { annualCents: 122300, fromYear: null, toYear: null }, // linear, AK 61.107,41 €
+  ];
+
+  it("summiert alle gültigen Posten", () => {
+    expect(depreciationItemsSumForYear(hoerstein, 2025)).toBe(686900);
+  });
+
+  it("ohne Posten: null (Fallback auf Berechnung)", () => {
+    expect(depreciationItemsSumForYear([], 2025)).toBeNull();
+  });
+
+  it("berücksichtigt Gültigkeit ab/bis Jahr", () => {
+    const items = [
+      { annualCents: 100000, fromYear: null, toYear: 2024 }, // läuft 2024 aus
+      { annualCents: 50000, fromYear: 2025, toYear: null },  // neu ab 2025
+    ];
+    expect(depreciationItemsSumForYear(items, 2024)).toBe(100000);
+    expect(depreciationItemsSumForYear(items, 2025)).toBe(50000);
+  });
+
+  it("gibt 0 zurück, wenn Posten existieren, aber keiner im Jahr gilt", () => {
+    expect(depreciationItemsSumForYear([{ annualCents: 100000, fromYear: 2030, toYear: null }], 2025)).toBe(0);
+  });
+
+  it("fließt als AfA in die Anlage V", () => {
+    const res = calcAnlageV({ ...BASE_INPUT, afaOverrideCents: depreciationItemsSumForYear(hoerstein, 2025) });
+    expect(res.werbungskosten.afaCents).toBe(686900);
+  });
+});
 
 describe("AfA lt. Vorjahr (afaOverrideCents)", () => {
   it("hat Vorrang vor der Berechnung aus Kaufpreis × Satz", () => {

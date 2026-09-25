@@ -51,6 +51,35 @@ export const properties = sqliteTable("properties", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
+// AfA-Posten je Objekt — Aufbau wie ELSTER Anlage V, Zeile 33 (je Posten: Art,
+// Prozent, "wie Vorjahr" / "laut Erläuterung", Erläuterung, Werbungskosten).
+// Gibt es Posten, ist ihre Summe die AfA des Jahres (Vorrang vor der Berechnung).
+export const DEPRECIATION_METHODS = ["linear", "degressive"] as const;
+export type DepreciationMethod = (typeof DEPRECIATION_METHODS)[number];
+export const DEPRECIATION_BASIS_MODES = ["prior_year", "explanation"] as const;
+export type DepreciationBasisMode = (typeof DEPRECIATION_BASIS_MODES)[number];
+
+export const propertyDepreciationItems = sqliteTable("property_depreciation_items", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id),
+  method: text("method", { enum: DEPRECIATION_METHODS }).notNull().default("linear"),
+  rateBps: integer("rate_bps"), // Prozentsatz in Basispunkten (125 = 1,25 %), optional
+  basisMode: text("basis_mode", { enum: DEPRECIATION_BASIS_MODES }).notNull().default("prior_year"),
+  explanation: text("explanation"), // Erläuterungstext (bei "laut Erläuterung")
+  annualCents: integer("annual_cents").notNull(), // AfA-Betrag pro Jahr
+  fromYear: integer("from_year"), // optional: gilt ab Jahr
+  toYear: integer("to_year"),     // optional: gilt bis Jahr (z. B. voll abgeschrieben)
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
 // Wohneinheiten innerhalb eines Gebäudes
 export const units = sqliteTable("units", {
   id: text("id").primaryKey(),
@@ -437,6 +466,11 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   expenses: many(expenses),
   loans: many(loans),
   expenseSchedules: many(expenseSchedules),
+  depreciationItems: many(propertyDepreciationItems),
+}));
+
+export const propertyDepreciationItemsRelations = relations(propertyDepreciationItems, ({ one }) => ({
+  property: one(properties, { fields: [propertyDepreciationItems.propertyId], references: [properties.id] }),
 }));
 
 export const loansRelations = relations(loans, ({ one, many }) => ({

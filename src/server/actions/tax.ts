@@ -2,9 +2,9 @@
 
 import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { properties, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
+import { properties, propertyDepreciationItems, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { calcAnlageV, buildLoanInterestPayments, receiptsToAnlageVPayments, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
+import { calcAnlageV, buildLoanInterestPayments, receiptsToAnlageVPayments, depreciationItemsSumForYear, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
 
 export async function getAnlageVAction(propertyId: string, year: number): Promise<AnlageVErgebnis | null> {
   await requireUser();
@@ -16,6 +16,10 @@ export async function getAnlageVAction(propertyId: string, year: number): Promis
   if (!property) return null;
 
   const yearStr = String(year);
+
+  const afaItems = await db.query.propertyDepreciationItems.findMany({
+    where: and(eq(propertyDepreciationItems.propertyId, propertyId), isNull(propertyDepreciationItems.deletedAt)),
+  });
 
   // Zahlungseingänge des Objekts mit Eingangsdatum im Jahr (Zuflussprinzip, § 11 EStG).
   // Jede Teilzahlung zählt in ihrem eigenen Jahr — auch über den Jahreswechsel.
@@ -108,7 +112,8 @@ export async function getAnlageVAction(propertyId: string, year: number): Promis
     purchasePriceTotal: property.purchasePriceTotal,
     purchasePriceLand: property.purchasePriceLand,
     depreciationPermille: property.depreciationPermille,
-    afaOverrideCents: property.depreciationOverrideCents,
+    // AfA-Posten (wie ELSTER Zeile 33) haben Vorrang; sonst Altfeld, sonst Berechnung
+    afaOverrideCents: depreciationItemsSumForYear(afaItems, year) ?? property.depreciationOverrideCents,
     payments: propertyPayments,
     loanPayments: propertyLoanPayments,
     expenses: propertyExpenses,

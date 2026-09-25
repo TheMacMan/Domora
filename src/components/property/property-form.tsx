@@ -114,23 +114,6 @@ export function PropertyForm(props: Props) {
             {errors.purchasePriceLandEur && <p className="text-xs text-destructive">{errors.purchasePriceLandEur.message}</p>}
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:max-w-xs">
-          <Label htmlFor="depreciationOverrideEur">AfA pro Jahr lt. Vorjahr (€)</Label>
-          <Input
-            id="depreciationOverrideEur"
-            type="number"
-            step="0.01"
-            min="0"
-            inputMode="decimal"
-            {...register("depreciationOverrideEur", { setValueAs: (v) => v === "" || isNaN(Number(v)) ? undefined : Number(v) })}
-            placeholder="optional"
-            disabled={isPending}
-          />
-          <p className="text-xs text-muted-foreground">
-            AfA-Betrag aus der letzten Steuererklärung (Anlage V). Hat Vorrang vor der Berechnung aus Kaufpreis und AfA-Satz — z. B. bei Erbschaft. Leer lassen = berechnen.
-          </p>
-          {errors.depreciationOverrideEur && <p className="text-xs text-destructive">{errors.depreciationOverrideEur.message}</p>}
-        </div>
       </fieldset>
 
       <fieldset className="space-y-4">
