@@ -3,11 +3,11 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { uploadDocumentAction } from "@/server/actions/documents";
-import { DOCUMENT_TAGS, type EntityType } from "@/lib/validators/document";
+import { DOCUMENT_TAGS, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, type EntityType } from "@/lib/validators/document";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, X, CheckCircle2, AlertCircle, FileUp } from "lucide-react";
 
 const selectClass =
   "border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50";
@@ -33,14 +33,55 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSelectedFiles(Array.from(e.target.files ?? []));
+  const [dragOver, setDragOver] = useState(false);
+  const [rejected, setRejected] = useState<string[]>([]);
+
+  // Neue Dateien prüfen (Typ, Größe) und an die Auswahl anhängen — Duplikate ignorieren
+  function addFiles(list: FileList | File[]) {
+    const ok: File[] = [];
+    const bad: string[] = [];
+    for (const f of Array.from(list)) {
+      if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(f.type)) bad.push(`${f.name}: nur PDF, JPG oder PNG`);
+      else if (f.size > MAX_FILE_SIZE_BYTES) bad.push(`${f.name}: größer als 20 MB`);
+      else ok.push(f);
+    }
+    setSelectedFiles((prev) => [
+      ...prev,
+      ...ok.filter((f) => !prev.some((p) => p.name === f.name && p.size === f.size)),
+    ]);
+    setRejected(bad);
     setUploadState({ kind: "idle" });
   }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    addFiles(e.target.files ?? []);
+    e.target.value = ""; // gleiche Datei erneut wählbar
+  }
+
+  function removeFile(index: number) {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  const dropHandlers = {
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
+      e.preventDefault();
+      setDragOver(true);
+    },
+    onDragLeave: () => setDragOver(false),
+    onDrop: (e: React.DragEvent) => {
+      if (!e.dataTransfer.files.length) return;
+      e.preventDefault();
+      setDragOver(false);
+      setOpen(true);
+      addFiles(e.dataTransfer.files);
+    },
+  };
 
   function handleClose() {
     setOpen(false);
     setSelectedFiles([]);
+    setRejected([]);
     setUploadState({ kind: "idle" });
     formRef.current?.reset();
   }
@@ -89,7 +130,14 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
 
   if (!open) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        {...dropHandlers}
+        className={dragOver ? "ring-2 ring-primary border-primary" : ""}
+        title="Klicken oder Dateien hierher ziehen"
+      >
         <Upload className="size-4" />
         Dokument hochladen
       </Button>
@@ -136,21 +184,49 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
             Dateien{" "}
             <span className="text-muted-foreground font-normal">(PDF, JPG, PNG – max. 20 MB je Datei)</span>
           </Label>
-          <Input
+          {/* Drop-Zone: Dateien hineinziehen oder antippen/klicken zum Auswählen */}
+          <label
+            htmlFor="doc-file"
+            {...dropHandlers}
+            className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-center cursor-pointer transition-colors ${
+              dragOver ? "border-primary bg-primary/5" : "border-input hover:bg-muted/30"
+            } ${isUploading ? "pointer-events-none opacity-50" : ""}`}
+          >
+            <FileUp className={`size-6 ${dragOver ? "text-primary" : "text-muted-foreground"}`} />
+            <span className="text-sm font-medium">{dragOver ? "Loslassen zum Hinzufügen" : "Dateien hierher ziehen"}</span>
+            <span className="text-xs text-muted-foreground">oder tippen bzw. klicken zum Auswählen</span>
+          </label>
+          <input
             ref={fileInputRef}
             id="doc-file"
-            name="file"
             type="file"
             multiple
             accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
             onChange={handleFileChange}
             disabled={isUploading}
-            className="cursor-pointer"
+            className="sr-only"
           />
+          {rejected.length > 0 && (
+            <ul className="text-xs text-destructive space-y-0.5">
+              {rejected.map((r, i) => <li key={i}>{r}</li>)}
+            </ul>
+          )}
           {selectedFiles.length > 0 && (
-            <ul className="text-xs text-muted-foreground space-y-0.5">
+            <ul className="rounded-md border divide-y text-sm">
               {selectedFiles.map((f, i) => (
-                <li key={i}>{f.name} · {(f.size / 1024).toFixed(0)} KB</li>
+                <li key={`${f.name}-${f.size}`} className="flex items-center gap-2 pl-3 pr-1 py-1">
+                  <span className="truncate flex-1">{f.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    disabled={isUploading}
+                    className="size-9 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    aria-label={`${f.name} entfernen`}
+                  >
+                    <X className="size-4" />
+                  </button>
+                </li>
               ))}
             </ul>
           )}
