@@ -5,10 +5,10 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@react-pdf/renderer"],
 
   // Dokument-Upload läuft über eine Server Action. Standardlimit ist 1 MB —
-  // die App erlaubt bis 20 MB je Datei (MAX_FILE_SIZE_BYTES) + Formular-Overhead.
+  // die App erlaubt bis 10 MB je Datei (MAX_FILE_SIZE_MB) + Formular-Overhead.
   experimental: {
     serverActions: {
-      bodySizeLimit: "21mb",
+      bodySizeLimit: "11mb",
     },
   },
 

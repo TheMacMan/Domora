@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { uploadDocumentAction } from "@/server/actions/documents";
-import { DOCUMENT_TAGS, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, type EntityType } from "@/lib/validators/document";
+import { DOCUMENT_TAGS, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB, type EntityType } from "@/lib/validators/document";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,7 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
     const bad: string[] = [];
     for (const f of Array.from(list)) {
       if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(f.type)) bad.push(`${f.name}: nur PDF, JPG oder PNG`);
-      else if (f.size > MAX_FILE_SIZE_BYTES) bad.push(`${f.name}: größer als 20 MB`);
+      else if (f.size > MAX_FILE_SIZE_BYTES) bad.push(`${f.name}: größer als ${MAX_FILE_SIZE_MB} MB (${(f.size / 1024 / 1024).toFixed(1)} MB)`);
       else ok.push(f);
     }
     setSelectedFiles((prev) => [
@@ -185,7 +185,7 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="doc-file">
             Dateien{" "}
-            <span className="text-muted-foreground font-normal">(PDF, JPG, PNG – max. 20 MB je Datei)</span>
+            <span className="text-muted-foreground font-normal">(PDF, JPG, PNG – max. {MAX_FILE_SIZE_MB} MB je Datei)</span>
           </Label>
           {/* Drop-Zone: Dateien hineinziehen oder antippen/klicken zum Auswählen */}
           <label

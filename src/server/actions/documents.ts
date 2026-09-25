@@ -13,6 +13,7 @@ import {
   documentMetaSchema,
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
+  MAX_FILE_SIZE_MB,
   ENTITY_TYPES,
   GENERAL_ENTITY_ID,
   type EntityType,
@@ -66,7 +67,7 @@ export async function uploadDocumentAction(
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return { ok: false, error: "Datei ist zu groß (max. 20 MB)." };
+    return { ok: false, error: `Datei ist zu groß (max. ${MAX_FILE_SIZE_MB} MB).` };
   }
 
   const metaParsed = documentMetaSchema.safeParse({
