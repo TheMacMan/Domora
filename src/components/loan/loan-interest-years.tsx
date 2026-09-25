@@ -12,7 +12,17 @@ import { setLoanInterestYearAction, deleteLoanInterestYearAction } from "@/serve
 
 type Entry = { id: string; year: number; interestCents: number };
 
-export function LoanInterestYears({ loanId, entries }: { loanId: string; entries: Entry[] }) {
+export function LoanInterestYears({
+  loanId,
+  entries,
+  contractNumber,
+  loanLabel,
+}: {
+  loanId: string;
+  entries: Entry[];
+  contractNumber?: string | null;
+  loanLabel?: string;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [year, setYear] = useState(String(new Date().getFullYear() - 1));
@@ -66,6 +76,19 @@ export function LoanInterestYears({ loanId, entries }: { loanId: string; entries
       <div className="flex items-center gap-2">
         <FileText className="size-5 text-primary" />
         <h2 className="text-base font-semibold">Schuldzinsen lt. Zinsbescheinigung</h2>
+      </div>
+      {/* Zum Abgleich mit der Bescheinigung: welches Darlehen wird gerade bearbeitet? */}
+      <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm -mt-1">
+        {loanLabel && <span className="font-medium">{loanLabel}</span>}
+        {contractNumber ? (
+          <span className="block sm:inline sm:ml-2">
+            Vertrags-Nr. <span className="font-mono font-semibold">{contractNumber}</span>
+          </span>
+        ) : (
+          <span className="block sm:inline sm:ml-2 text-xs text-amber-600">
+            keine Vertragsnummer hinterlegt — unter „Bearbeiten“ ergänzen
+          </span>
+        )}
       </div>
       <p className="text-xs text-muted-foreground -mt-2">
         Die von der Bank bescheinigten Jahres-Schuldzinsen. Ein erfasstes Jahr hat in der{" "}

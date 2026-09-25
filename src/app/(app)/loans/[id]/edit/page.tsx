@@ -33,6 +33,7 @@ export default async function EditLoanPage({ params }: { params: Promise<{ id: s
         defaultValues={{
           propertyId: loan.propertyId,
           description: loan.description,
+          contractNumber: loan.contractNumber ?? "",
           loanType: (loan.loanType as LoanType) ?? "annuity",
           initialAmountEur: loan.initialAmountCents != null ? toEuros(loan.initialAmountCents) : undefined,
           balanceEur: toEuros(loan.balanceCents),

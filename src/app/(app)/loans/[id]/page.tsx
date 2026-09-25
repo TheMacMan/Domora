@@ -175,7 +175,12 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
               <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300">Bausparvertrag</Badge>
             )}
           </div>
-          <p className="text-muted-foreground mt-1">{loan.property.street}, {loan.property.city}</p>
+          <p className="text-muted-foreground mt-1">
+            {loan.property.street}, {loan.property.city}
+            {loan.contractNumber && (
+              <span className="ml-2 text-sm">· Vertrags-Nr. <span className="font-mono text-foreground">{loan.contractNumber}</span></span>
+            )}
+          </p>
         </div>
         <Button asChild variant="outline" size="sm">
           <Link href={`/loans/${id}/edit`}>
@@ -398,6 +403,8 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
       {/* Schuldzinsen lt. Zinsbescheinigung (maßgeblich für Anlage V) */}
       <LoanInterestYears
         loanId={id}
+        contractNumber={loan.contractNumber}
+        loanLabel={loan.description}
         entries={loan.interestYears.map((e) => ({ id: e.id, year: e.year, interestCents: e.interestCents }))}
       />
 

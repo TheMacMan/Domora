@@ -20,6 +20,7 @@ export const loanSchema = z
   .object({
     propertyId: z.string().min(1, "Objekt erforderlich"),
     description: z.string().min(1, "Bezeichnung erforderlich").max(200),
+    contractNumber: z.string().max(100).optional(),
     loanType: z.enum(LOAN_TYPES),
     initialAmountEur: optionalNumber,
     balanceEur: z.number({ required_error: "Restschuld erforderlich" }).nonnegative(),

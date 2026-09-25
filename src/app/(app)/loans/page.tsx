@@ -265,6 +265,9 @@ export default async function LoansPage() {
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="min-w-0 flex-1">
                           <p className="font-medium truncate">{l.description}</p>
+                          {l.contractNumber && (
+                            <p className="text-xs text-muted-foreground font-mono truncate">Nr. {l.contractNumber}</p>
+                          )}
                           {linkedBauspar && (
                             <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-0.5">
                               <ArrowRight className="size-3 shrink-0" /> wird durch {linkedBauspar.description} abgelöst
@@ -344,6 +347,9 @@ export default async function LoansPage() {
                             <Link href={`/loans/${l.id}`} className="hover:underline">
                               {l.description}
                             </Link>
+                            {l.contractNumber && (
+                              <p className="text-xs text-muted-foreground font-mono font-normal">Nr. {l.contractNumber}</p>
+                            )}
                             {linkedBauspar && (
                               <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-0.5 font-normal">
                                 <ArrowRight className="size-3 shrink-0" /> wird durch {linkedBauspar.description} abgelöst

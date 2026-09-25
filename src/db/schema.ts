@@ -264,6 +264,7 @@ export const loans = sqliteTable("loans", {
     .notNull()
     .references(() => properties.id),
   description: text("description").notNull(), // z.B. "Hauptdarlehen", "KfW"
+  contractNumber: text("contract_number"), // Darlehens-/Vertragsnummer der Bank (zum Zuordnen von Zinsbescheinigungen)
   loanType: text("loan_type").notNull().default("annuity"), // annuity | interest_only | bauspar
   initialAmountCents: integer("initial_amount_cents"),
   balanceCents: integer("balance_cents").notNull(), // Restschuld per balanceDate

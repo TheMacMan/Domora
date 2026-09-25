@@ -41,6 +41,7 @@ function toDb(data: LoanFormInput) {
   return {
     propertyId: data.propertyId,
     description: data.description,
+    contractNumber: data.contractNumber?.trim() || null,
     loanType: data.loanType,
     initialAmountCents: centsOrNull(data.initialAmountEur),
     balanceCents: toCents(data.balanceEur),

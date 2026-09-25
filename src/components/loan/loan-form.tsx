@@ -179,6 +179,19 @@ export function LoanForm(props: Props) {
           {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
         </div>
 
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="contractNumber">Vertragsnummer (optional)</Label>
+          <Input
+            id="contractNumber"
+            {...register("contractNumber")}
+            placeholder="Darlehens- bzw. Vertragsnummer der Bank"
+            autoComplete="off"
+            disabled={isPending}
+          />
+          <p className="text-xs text-muted-foreground">Steht auf der Zinsbescheinigung — hilft beim Zuordnen.</p>
+          {errors.contractNumber && <p className="text-xs text-destructive">{errors.contractNumber.message}</p>}
+        </div>
+
         {!isBauspar && (
           <div className="flex flex-col gap-2">
             <Label htmlFor="initialAmountEur">
