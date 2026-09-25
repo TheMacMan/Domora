@@ -11,7 +11,8 @@ import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import {
   documentMetaSchema,
-  ALLOWED_MIME_TYPES,
+  resolveFileType,
+  FILE_TYPES_LABEL,
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_MB,
   ENTITY_TYPES,
@@ -41,13 +42,6 @@ function uploadsDir(entityType: EntityType, entityId: string) {
   return path.join(process.cwd(), "data", "uploads", entityType, entityId);
 }
 
-function extFromMime(mime: string) {
-  if (mime === "application/pdf") return "pdf";
-  if (mime === "image/jpeg") return "jpg";
-  if (mime === "image/png") return "png";
-  return "bin";
-}
-
 export async function uploadDocumentAction(
   entityType: EntityType,
   entityId: string,
@@ -62,8 +56,9 @@ export async function uploadDocumentAction(
     return { ok: false, error: "Keine Datei ausgewählt." };
   }
 
-  if (!ALLOWED_MIME_TYPES.includes(file.type as (typeof ALLOWED_MIME_TYPES)[number])) {
-    return { ok: false, error: "Nur PDF, JPG und PNG sind erlaubt." };
+  const fileType = resolveFileType(file.name);
+  if (!fileType) {
+    return { ok: false, error: `Dateityp nicht erlaubt (${FILE_TYPES_LABEL}).` };
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -77,8 +72,7 @@ export async function uploadDocumentAction(
   if (!metaParsed.success) return { ok: false, error: "Ungültige Eingabe." };
 
   const id = createId();
-  const ext = extFromMime(file.type);
-  const storedName = `${id}.${ext}`;
+  const storedName = `${id}.${fileType.ext}`;
   const dir = uploadsDir(entityType, entityId);
 
   await mkdir(dir, { recursive: true });
@@ -89,7 +83,7 @@ export async function uploadDocumentAction(
     id,
     filename: file.name,
     storedName,
-    mimeType: file.type,
+    mimeType: fileType.mime,
     sizeBytes: file.size,
     entityType,
     entityId,

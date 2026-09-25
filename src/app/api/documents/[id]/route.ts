@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { documents } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { isPreviewable } from "@/lib/validators/document";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -37,10 +38,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Datei nicht gefunden" }, { status: 404 });
   }
 
+  // PDF/Bilder inline (Vorschau), Office/CSV/Text immer als Download
+  const disposition = isPreviewable(doc.mimeType) ? "inline" : "attachment";
   return new NextResponse(blob, {
     headers: {
       "Content-Type": doc.mimeType,
-      "Content-Disposition": `inline; filename="${encodeURIComponent(doc.filename)}"`,
+      "Content-Disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(doc.filename)}`,
+      "X-Content-Type-Options": "nosniff",
       "Content-Length": String(doc.sizeBytes),
       "Cache-Control": "private, no-store",
     },

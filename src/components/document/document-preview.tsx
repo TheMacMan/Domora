@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { X, Download } from "lucide-react";
+import { X, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { isPreviewable } from "@/lib/validators/document";
 
 type Props = {
   docId: string;
@@ -51,7 +52,18 @@ export function DocumentPreview({ docId, filename, mimeType, onClose }: Props) {
 
         {/* Content */}
         <div className="flex-1 overflow-auto min-h-0 bg-muted/30">
-          {isImage ? (
+          {!isPreviewable(mimeType) ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+              <FileText className="size-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Für diesen Dateityp gibt es keine Vorschau.</p>
+              <Button asChild size="sm">
+                <a href={url} download={filename}>
+                  <Download className="size-4" />
+                  Herunterladen
+                </a>
+              </Button>
+            </div>
+          ) : isImage ? (
             <img
               src={url}
               alt={filename}
