@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { getPaymentAction } from "@/server/actions/payments";
 import { PaymentEditForm } from "@/components/payment/payment-edit-form";
-import { toEuros } from "@/lib/money";
 
 export const metadata = { title: "Zahlung bearbeiten – Domora" };
 
@@ -21,12 +20,9 @@ export default async function EditPaymentPage({ params }: { params: Promise<{ id
       </p>
       <PaymentEditForm
         paymentId={id}
-        defaultValues={{
-          paidEur: payment.paidCents != null ? toEuros(payment.paidCents) : undefined,
-          paidAt: payment.paidAt ?? "",
-          notes: payment.notes ?? "",
-        }}
         sollCents={payment.rentCents + (payment.serviceChargesCents ?? 0)}
+        receipts={payment.receipts.map((r) => ({ id: r.id, receivedAt: r.receivedAt, amountCents: r.amountCents, note: r.note }))}
+        notes={payment.notes ?? ""}
         returnTo={`/payments?month=${payment.dueDate.slice(0, 7)}`}
       />
     </div>

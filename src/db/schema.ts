@@ -125,6 +125,34 @@ export const payments = sqliteTable("payments", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
+// Zahlungseingänge (Zuflüsse) — jede Überweisung mit eigenem Datum und Betrag.
+// Maßgeblich für die Anlage V (Zuflussprinzip, § 11 EStG). payments.paidCents/paidAt
+// bleiben als automatisch gepflegte Summe (Σ Eingänge / letztes Eingangsdatum).
+export const RECEIPT_KINDS = ["rent", "nk_settlement"] as const;
+export type ReceiptKind = (typeof RECEIPT_KINDS)[number];
+
+export const paymentReceipts = sqliteTable("payment_receipts", {
+  id: text("id").primaryKey(),
+  leaseId: text("lease_id")
+    .notNull()
+    .references(() => leases.id),
+  // "rent" = Mietzahlung zu einem Monat (paymentId gesetzt)
+  // "nk_settlement" = NK-Nachzahlung (> 0) bzw. -Erstattung an den Mieter (< 0) zu einem Abrechnungsjahr
+  kind: text("kind", { enum: RECEIPT_KINDS }).notNull(),
+  paymentId: text("payment_id").references(() => payments.id),
+  settlementYear: integer("settlement_year"),
+  receivedAt: text("received_at").notNull(), // YYYY-MM-DD (Zufluss/Abfluss)
+  amountCents: integer("amount_cents").notNull(), // < 0 = Rückzahlung an den Mieter
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
 // Mietverträge
 export const SERVICE_CHARGES_TYPES = ["prepayment", "flat"] as const;
 export type ServiceChargesType = (typeof SERVICE_CHARGES_TYPES)[number];
@@ -445,6 +473,7 @@ export const leasesRelations = relations(leases, ({ one, many }) => ({
   unit: one(units, { fields: [leases.unitId], references: [units.id] }),
   leaseTenants: many(leaseTenants),
   payments: many(payments),
+  receipts: many(paymentReceipts),
   rentAdjustments: many(rentAdjustments),
   rentComponents: many(leaseRentComponents),
 }));
@@ -458,8 +487,14 @@ export const leaseTenantsRelations = relations(leaseTenants, ({ one }) => ({
   tenant: one(tenants, { fields: [leaseTenants.tenantId], references: [tenants.id] }),
 }));
 
-export const paymentsRelations = relations(payments, ({ one }) => ({
+export const paymentsRelations = relations(payments, ({ one, many }) => ({
   lease: one(leases, { fields: [payments.leaseId], references: [leases.id] }),
+  receipts: many(paymentReceipts),
+}));
+
+export const paymentReceiptsRelations = relations(paymentReceipts, ({ one }) => ({
+  lease: one(leases, { fields: [paymentReceipts.leaseId], references: [leases.id] }),
+  payment: one(payments, { fields: [paymentReceipts.paymentId], references: [payments.id] }),
 }));
 
 export const rentAdjustmentsRelations = relations(rentAdjustments, ({ one }) => ({
@@ -477,6 +512,8 @@ export type NewTenant = typeof tenants.$inferInsert;
 export type Lease = typeof leases.$inferSelect;
 export type NewLease = typeof leases.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
+export type PaymentReceipt = typeof paymentReceipts.$inferSelect;
+export type NewPaymentReceipt = typeof paymentReceipts.$inferInsert;
 export type NewPayment = typeof payments.$inferInsert;
 export type RentAdjustment = typeof rentAdjustments.$inferSelect;
 export type NewRentAdjustment = typeof rentAdjustments.$inferInsert;

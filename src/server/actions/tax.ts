@@ -1,10 +1,10 @@
 "use server";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { properties, payments, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
+import { properties, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { calcAnlageV, buildLoanInterestPayments, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
+import { calcAnlageV, buildLoanInterestPayments, receiptsToAnlageVPayments, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
 
 export async function getAnlageVAction(propertyId: string, year: number): Promise<AnlageVErgebnis | null> {
   await requireUser();
@@ -17,13 +17,21 @@ export async function getAnlageVAction(propertyId: string, year: number): Promis
 
   const yearStr = String(year);
 
-  // Alle Payments des Objekts mit paidAt im Jahr (Zufluss-Prinzip)
-  const allPayments = await db.query.payments.findMany({
-    where: isNull(payments.deletedAt),
-    with: { lease: { with: { unit: true } } },
+  // Zahlungseingänge des Objekts mit Eingangsdatum im Jahr (Zuflussprinzip, § 11 EStG).
+  // Jede Teilzahlung zählt in ihrem eigenen Jahr — auch über den Jahreswechsel.
+  const yearReceipts = await db.query.paymentReceipts.findMany({
+    where: and(
+      isNull(paymentReceipts.deletedAt),
+      gte(paymentReceipts.receivedAt, `${yearStr}-01-01`),
+      lte(paymentReceipts.receivedAt, `${yearStr}-12-31`),
+    ),
+    with: { lease: { with: { unit: true } }, payment: true },
   });
-  const propertyPayments = allPayments.filter(
-    (p) => p.lease.unit.propertyId === propertyId && p.paidAt?.startsWith(yearStr)
+  const propertyReceipts = yearReceipts.filter(
+    (r) => r.lease.unit.propertyId === propertyId && (r.kind !== "rent" || (r.payment != null && r.payment.deletedAt == null)),
+  );
+  const propertyPayments = receiptsToAnlageVPayments(
+    propertyReceipts.map((r) => ({ kind: r.kind, amountCents: r.amountCents, receivedAt: r.receivedAt, payment: r.payment })),
   );
 
   // Loan payments des Objekts mit dueDate im Jahr

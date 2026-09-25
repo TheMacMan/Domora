@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcAfA, calcAnlageV, buildLoanInterestPayments } from "../anlage-v";
+import { calcAfA, calcAnlageV, buildLoanInterestPayments, receiptsToAnlageVPayments } from "../anlage-v";
 
 const BASE_INPUT = {
   propertyId: "prop1",
@@ -11,6 +11,58 @@ const BASE_INPUT = {
   loanPayments: [],
   expenses: [],
 };
+
+describe("receiptsToAnlageVPayments (Zuflussprinzip)", () => {
+  const monat = { rentCents: 35000, serviceChargesCents: 20000 }; // 550 € Soll
+
+  it("Teilzahlungen über den Jahreswechsel zählen jeweils im Jahr ihres Eingangs", () => {
+    const receipts = [
+      { kind: "rent" as const, amountCents: 30000, receivedAt: "2024-12-31", payment: monat },
+      { kind: "rent" as const, amountCents: 25000, receivedAt: "2025-03-03", payment: monat },
+    ];
+    const pays = receiptsToAnlageVPayments(receipts);
+    const y2024 = calcAnlageV({ ...BASE_INPUT, year: 2024, payments: pays });
+    const y2025 = calcAnlageV({ ...BASE_INPUT, year: 2025, payments: pays });
+    expect(y2024.einnahmen.gesamtCents).toBe(30000);
+    expect(y2025.einnahmen.gesamtCents).toBe(25000);
+  });
+
+  it("teilt einen Mieteingang im Verhältnis Kalt/NK des Monats-Solls auf", () => {
+    const pays = receiptsToAnlageVPayments([
+      { kind: "rent", amountCents: 55000, receivedAt: "2025-05-02", payment: monat },
+    ]);
+    const res = calcAnlageV({ ...BASE_INPUT, year: 2025, payments: pays });
+    expect(res.einnahmen.mieteinnahmenCents).toBe(35000);
+    expect(res.einnahmen.umlagenCents).toBe(20000);
+  });
+
+  it("Rückzahlung an den Mieter mindert die Einnahmen im Jahr der Rückzahlung", () => {
+    const pays = receiptsToAnlageVPayments([
+      { kind: "rent", amountCents: 55000, receivedAt: "2023-04-12", payment: monat },
+      { kind: "rent", amountCents: -55000, receivedAt: "2023-04-13", payment: monat },
+    ]);
+    const res = calcAnlageV({ ...BASE_INPUT, year: 2023, payments: pays });
+    expect(res.einnahmen.gesamtCents).toBe(0);
+  });
+
+  it("NK-Nachzahlung und -Erstattung wirken vollständig auf die Umlagen", () => {
+    const pays = receiptsToAnlageVPayments([
+      { kind: "nk_settlement", amountCents: 50061, receivedAt: "2025-03-24", payment: null },
+      { kind: "nk_settlement", amountCents: -49520, receivedAt: "2025-03-26", payment: null },
+    ]);
+    const res = calcAnlageV({ ...BASE_INPUT, year: 2025, payments: pays });
+    expect(res.einnahmen.mieteinnahmenCents).toBe(0);
+    expect(res.einnahmen.umlagenCents).toBe(50061 - 49520);
+  });
+
+  it("ignoriert Eingänge über 0 € und Mieteingänge ohne Monat", () => {
+    const pays = receiptsToAnlageVPayments([
+      { kind: "rent", amountCents: 0, receivedAt: "2025-01-01", payment: monat },
+      { kind: "rent", amountCents: 10000, receivedAt: "2025-01-01", payment: null },
+    ]);
+    expect(pays).toEqual([]);
+  });
+});
 
 describe("buildLoanInterestPayments (Vorrang Jahres-Zinsbescheinigung)", () => {
   const computed = [

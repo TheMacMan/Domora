@@ -11,6 +11,7 @@ import { PartialPaymentButton } from "@/components/payment/partial-payment-butto
 import { MarkPaidButton } from "@/components/payment/mark-paid-button";
 import { DeleteUnpaidButton } from "@/components/payment/delete-unpaid-button";
 import { MonthPicker } from "@/components/month-picker";
+import { ReceiptsDetails } from "@/components/payment/receipts-details";
 import { toEuros } from "@/lib/money";
 
 export const metadata = { title: "Zahlungen – Domora" };
@@ -180,6 +181,7 @@ export default async function PaymentsPage({
                       {p.paidCents != null ? formatMoney(p.paidCents) : formatMoney(soll)}
                     </p>
                     {status === "partial" && <p className="text-xs text-muted-foreground">offen {formatMoney(open)}</p>}
+                    <ReceiptsDetails receipts={p.receipts} align="left" />
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -252,6 +254,7 @@ export default async function PaymentsPage({
                           {status === "partial" && (
                             <p className="text-xs font-normal text-muted-foreground">offen {formatMoney(open)}</p>
                           )}
+                          <ReceiptsDetails receipts={p.receipts} />
                         </td>
                         <td className="px-4 py-3 text-right text-muted-foreground">
                           {formatDate(p.paidAt)}

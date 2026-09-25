@@ -11,6 +11,7 @@ import { Private } from "@/components/private";
 import { RENT_COMPONENT_LABELS, type RentComponentKind } from "@/lib/validators/lease";
 import { effectiveRentAt } from "@/lib/rent";
 import { Pencil, Trash2, Plus } from "lucide-react";
+import { RentLedgerSection } from "@/components/lease/rent-ledger-section";
 
 export const metadata = { title: "Mietvertrag – Domora" };
 
@@ -264,6 +265,8 @@ export default async function LeasePage({ params }: { params: Promise<{ id: stri
           </table>
         </div>
       </div>
+
+      <RentLedgerSection leaseId={lease.id} />
 
       <div>
         <Button asChild variant="ghost" size="sm">

@@ -88,6 +88,36 @@ export function buildLoanInterestPayments(
   return out;
 }
 
+// Wandelt Zahlungseingänge in die payments-Liste für calcAnlageV um (Zuflussprinzip:
+// jeder Eingang zählt im Jahr seines Eingangsdatums, auch bei Teilzahlungen über
+// den Jahreswechsel).
+//  - Mietzahlung: Aufteilung Kalt/NK im Verhältnis des Monats-Solls
+//  - NK-Nachzahlung (> 0) / -Erstattung (< 0): vollständig Umlagen
+export function receiptsToAnlageVPayments(
+  receipts: Array<{
+    kind: "rent" | "nk_settlement";
+    amountCents: number;
+    receivedAt: string;
+    payment: { rentCents: number; serviceChargesCents: number | null } | null;
+  }>,
+): AnlageVInput["payments"] {
+  const out: AnlageVInput["payments"] = [];
+  for (const r of receipts) {
+    if (r.amountCents === 0) continue;
+    if (r.kind === "nk_settlement") {
+      out.push({ paidCents: r.amountCents, paidAt: r.receivedAt, rentCents: 0, serviceChargesCents: Math.abs(r.amountCents) });
+    } else if (r.payment) {
+      out.push({
+        paidCents: r.amountCents,
+        paidAt: r.receivedAt,
+        rentCents: r.payment.rentCents,
+        serviceChargesCents: r.payment.serviceChargesCents,
+      });
+    }
+  }
+  return out;
+}
+
 export function calcAfA(
   purchasePriceTotal: number | null,
   purchasePriceLand: number | null,

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getNkAbrechnungAction } from "@/server/actions/service-charges";
+import { getNkSettlementReceiptsAction } from "@/server/actions/payments";
+import { NkSettlementReceipts } from "@/components/payment/nk-settlement-receipts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Private } from "@/components/private";
@@ -18,6 +20,7 @@ export default async function NkLeaseDetailPage({ params }: { params: Promise<{ 
   const la = abr.leaseAbrechnungen.find((x) => x.id === leaseAbrId);
   if (!la) notFound();
 
+  const settlementReceipts = la.isFlatRate ? [] : await getNkSettlementReceiptsAction(la.leaseId, abr.year);
   const tenants = la.lease.leaseTenants.map((lt) => `${lt.tenant.firstName} ${lt.tenant.lastName}`).join(" · ");
   const saldoColor = la.saldoCents > 0 ? "text-amber-600" : la.saldoCents < 0 ? "text-emerald-600" : "";
   return (
@@ -126,6 +129,19 @@ export default async function NkLeaseDetailPage({ params }: { params: Promise<{ 
           PDF erzeugen
         </a>
       </Button>
+
+      <section className="space-y-2">
+        <h2 className="text-base font-semibold">Zahlung zur Abrechnung</h2>
+        <p className="text-xs text-muted-foreground">
+          Nachzahlung oder Erstattung mit dem tatsächlichen Datum erfassen — zählt in der Anlage V im Jahr der Zahlung.
+        </p>
+        <NkSettlementReceipts
+          leaseId={la.leaseId}
+          fixedYear={abr.year}
+          suggestedCents={settlementReceipts.length === 0 ? la.saldoCents : undefined}
+          receipts={settlementReceipts.map((r) => ({ id: r.id, settlementYear: r.settlementYear, receivedAt: r.receivedAt, amountCents: r.amountCents, note: r.note }))}
+        />
+      </section>
       </>
       )}
     </div>
