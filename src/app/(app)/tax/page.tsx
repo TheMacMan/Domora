@@ -138,7 +138,6 @@ export default async function TaxPage({
                 ["Schuldzinsen", ergebnis.werbungskosten.schuldzinsenCents],
                 ["AfA", ergebnis.werbungskosten.afaCents],
                 ["Erhaltungsaufwand", ergebnis.werbungskosten.erhaltungsaufwandCents],
-                ["Herstellungs-/Anschaffungsnaher Aufwand", ergebnis.werbungskosten.kapitalaufwandCents],
                 ["Grundsteuer", ergebnis.werbungskosten.grundsteuerCents],
                 ["Sach-/Haftpflichtversicherung", ergebnis.werbungskosten.versicherungenCents],
                 ["Verwaltungskosten", ergebnis.werbungskosten.verwaltungskostenCents],
@@ -155,6 +154,12 @@ export default async function TaxPage({
                 <span>Gesamt</span>
                 <span className="tabular-nums">{formatMoney(ergebnis.werbungskosten.gesamtCents)}</span>
               </div>
+              {ergebnis.werbungskosten.kapitalaufwandCents !== 0 && (
+                <div className="flex justify-between gap-3 text-xs text-muted-foreground pt-1 italic">
+                  <span>Herstellungs-/anschaffungsnaher Aufwand — nicht abziehbar, erhöht die AfA-Grundlage</span>
+                  <span className="tabular-nums shrink-0">{formatMoney(ergebnis.werbungskosten.kapitalaufwandCents)}</span>
+                </div>
+              )}
               {ergebnis.leerstand.gesamtCents > 0 && (
                 <div className="flex justify-between text-xs text-muted-foreground pt-1 italic">
                   <span>davon Leerstand-Anteil (nicht umgelegt)</span>

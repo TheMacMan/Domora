@@ -11,7 +11,9 @@ export type AnlageVEinnahmen = {
 export type AnlageVWerbungskosten = {
   schuldzinsenCents: number;           // aus loan_payments (dueDate im Jahr)
   erhaltungsaufwandCents: number;      // expenses: maintenance
-  kapitalaufwandCents: number;         // expenses: capital_expense
+  // expenses: capital_expense — nur informativ: Herstellungs-/anschaffungsnaher Aufwand ist
+  // nicht sofort abziehbar, sondern erhöht die AfA-Bemessungsgrundlage (nicht in gesamtCents).
+  kapitalaufwandCents: number;
   afaCents: number;                    // 2 % linear vom Gebäudeanteil
   grundsteuerCents: number;            // expenses: bk_grundsteuer
   versicherungenCents: number;         // expenses: bk_versicherung + insurance_owner
@@ -216,7 +218,6 @@ export function calcAnlageV(input: AnlageVInput): AnlageVErgebnis {
   werbungskosten.gesamtCents =
     werbungskosten.schuldzinsenCents +
     werbungskosten.erhaltungsaufwandCents +
-    werbungskosten.kapitalaufwandCents +
     werbungskosten.afaCents +
     werbungskosten.grundsteuerCents +
     werbungskosten.versicherungenCents +

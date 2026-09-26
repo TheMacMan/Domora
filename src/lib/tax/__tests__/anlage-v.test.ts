@@ -263,6 +263,20 @@ describe("calcAnlageV – Werbungskosten", () => {
     expect(result.werbungskosten.grundsteuerCents).toBe(40000);
     expect(result.werbungskosten.versicherungenCents).toBe(25000);
   });
+
+  it("Herstellungs-/anschaffungsnaher Aufwand wird ausgewiesen, aber nicht abgezogen", () => {
+    const result = calcAnlageV({
+      ...BASE_INPUT,
+      afaOverrideCents: 0,
+      expenses: [
+        { category: "maintenance",     amountCents: 50000 },
+        { category: "capital_expense", amountCents: 900000 },
+      ],
+    });
+    expect(result.werbungskosten.kapitalaufwandCents).toBe(900000);
+    expect(result.werbungskosten.gesamtCents).toBe(50000);
+    expect(result.ueberschussCents).toBe(-50000);
+  });
 });
 
 describe("calcAnlageV – Überschuss", () => {

@@ -209,11 +209,10 @@ export async function getElsterAnlageVAction(propertyId: string, year: number): 
     })),
   });
 
-  // Gegenprobe mit der Anlage-V-Übersicht (Herstellungsaufwand ist dort enthalten, hier nicht)
+  // Gegenprobe mit der Anlage-V-Übersicht
   const ergebnis = await getAnlageVAction(propertyId, year);
   if (ergebnis) {
-    const expectedWk = ergebnis.werbungskosten.gesamtCents - ergebnis.werbungskosten.kapitalaufwandCents;
-    if (ergebnis.einnahmen.gesamtCents !== result.summeEinnahmen.cents || expectedWk !== result.summeWerbungskosten.cents) {
+    if (ergebnis.einnahmen.gesamtCents !== result.summeEinnahmen.cents || ergebnis.werbungskosten.gesamtCents !== result.summeWerbungskosten.cents) {
       result.warnings.unshift({
         text: "Die Summen weichen von der Anlage-V-Übersicht ab. Bitte die Zuordnung prüfen, bevor du die Werte überträgst.",
       });

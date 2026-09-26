@@ -66,13 +66,12 @@ export function AnlageVPdf({ ergebnis, propertyAddress }: Props) {
     { label: "Schuldzinsen", cents: w.schuldzinsenCents },
     { label: "Absetzung für Abnutzung (AfA)", cents: w.afaCents, alt: true },
     { label: "Erhaltungsaufwand", cents: w.erhaltungsaufwandCents },
-    { label: "Herstellungs-/Anschaffungsnaher Aufwand", cents: w.kapitalaufwandCents, alt: true },
-    { label: "Grundsteuer", cents: w.grundsteuerCents },
-    { label: "Sach-/Haftpflichtversicherung", cents: w.versicherungenCents, alt: true },
-    { label: "Verwaltungskosten", cents: w.verwaltungskostenCents },
-    { label: "Übrige Betriebskosten (umlegbar)", cents: w.betriebskostenCents, alt: true },
-    { label: "Nicht umlegbare Kosten", cents: w.nichtUmlegbareCents },
-    { label: "Sonstige Werbungskosten", cents: w.sonstigeCents, alt: true },
+    { label: "Grundsteuer", cents: w.grundsteuerCents, alt: true },
+    { label: "Sach-/Haftpflichtversicherung", cents: w.versicherungenCents },
+    { label: "Verwaltungskosten", cents: w.verwaltungskostenCents, alt: true },
+    { label: "Übrige Betriebskosten (umlegbar)", cents: w.betriebskostenCents },
+    { label: "Nicht umlegbare Kosten", cents: w.nichtUmlegbareCents, alt: true },
+    { label: "Sonstige Werbungskosten", cents: w.sonstigeCents },
   ];
 
   return (
@@ -106,6 +105,16 @@ export function AnlageVPdf({ ergebnis, propertyAddress }: Props) {
               </Text>
               <Text style={{ fontSize: 8, color: "#666", fontStyle: "italic" }}>
                 {fmt(ergebnis.leerstand.gesamtCents)}
+              </Text>
+            </View>
+          )}
+          {w.kapitalaufwandCents !== 0 && (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 4, paddingHorizontal: 4 }}>
+              <Text style={{ fontSize: 8, color: "#666", fontStyle: "italic" }}>
+                Herstellungs-/anschaffungsnaher Aufwand (nicht abziehbar, erhöht die AfA-Grundlage)
+              </Text>
+              <Text style={{ fontSize: 8, color: "#666", fontStyle: "italic" }}>
+                {fmt(w.kapitalaufwandCents)}
               </Text>
             </View>
           )}
