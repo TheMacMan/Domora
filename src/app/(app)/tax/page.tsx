@@ -3,7 +3,7 @@ import { getTaxPropertiesAction, getAnlageVAction, getTaxEarliestYearAction } fr
 import { Button } from "@/components/ui/button";
 import { TaxYearSelect } from "@/components/tax/tax-year-select";
 import { formatMoney } from "@/lib/money";
-import { FileDown } from "lucide-react";
+import { ClipboardList, FileDown } from "lucide-react";
 
 export const metadata = { title: "Anlage V – Domora" };
 
@@ -40,15 +40,23 @@ export default async function TaxPage({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">Anlage V</h1>
         {ergebnis && (
-          <Button asChild size="sm">
-            <a href={`/api/tax?propertyId=${selectedId}&year=${year}`} download>
-              <FileDown className="size-4" />
-              PDF herunterladen
-            </a>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/tax/elster?propertyId=${selectedId}&year=${year}`}>
+                <ClipboardList className="size-4" />
+                ELSTER-Übertragung
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <a href={`/api/tax?propertyId=${selectedId}&year=${year}`} download>
+                <FileDown className="size-4" />
+                PDF herunterladen
+              </a>
+            </Button>
+          </div>
         )}
       </div>
 
