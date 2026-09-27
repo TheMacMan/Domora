@@ -10,6 +10,7 @@ import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import { effectiveRentAt } from "@/lib/rent";
 import { aggregateReceipts, buildRentLedger } from "@/lib/receipts";
+import { buildMatrixRow } from "@/lib/payment-matrix";
 
 type ActionResult = { ok: true; created?: number } | { ok: false; error: string };
 
@@ -404,4 +405,53 @@ export async function getOpenPaymentsAction() {
       },
     },
   }).then((rows) => rows.filter((r) => r.dueDate < today));
+}
+
+// Jahresübersicht Mietvertrag × Monat (Zahlungs-Raster)
+export async function getPaymentMatrixAction(year: number) {
+  await requireUser();
+  const today = todayLocal();
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+
+  const activeLeases = await db.query.leases.findMany({
+    where: and(
+      isNull(leases.deletedAt),
+      lte(leases.startDate, yearEnd),
+      or(isNull(leases.endDate), gte(leases.endDate, yearStart)),
+    ),
+    with: {
+      unit: { with: { property: true } },
+      leaseTenants: { with: { tenant: true }, orderBy: (lt, { asc }) => [asc(lt.sortOrder)] },
+    },
+  });
+
+  const yearPayments = await db.query.payments.findMany({
+    where: and(isNull(payments.deletedAt), gte(payments.dueDate, yearStart), lte(payments.dueDate, yearEnd)),
+  });
+
+  const rows = activeLeases.map((l) => {
+    const row = buildMatrixRow({
+      year,
+      today,
+      lease: { id: l.id, startDate: l.startDate, endDate: l.endDate },
+      payments: yearPayments.filter((p) => p.leaseId === l.id),
+    });
+    return {
+      ...row,
+      tenantNames: l.leaseTenants.map((lt) => lt.tenant.lastName).filter((n, i, a) => a.indexOf(n) === i).join(" / ") || "(ohne Mieter)",
+      unitName: l.unit.name,
+      propertyId: l.unit.property.id,
+      propertyLabel: `${l.unit.property.street}, ${l.unit.property.city}`,
+      startDate: l.startDate,
+      endDate: l.endDate,
+    };
+  });
+
+  rows.sort((a, b) =>
+    a.propertyLabel.localeCompare(b.propertyLabel, "de") ||
+    a.unitName.localeCompare(b.unitName, "de") ||
+    a.startDate.localeCompare(b.startDate),
+  );
+  return { year, today, rows };
 }
