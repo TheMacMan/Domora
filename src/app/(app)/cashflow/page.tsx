@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getCashflowAction, type CashflowMonth } from "@/server/actions/cashflow";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { formatMonthShort } from "@/lib/dates";
-import { cn } from "@/lib/utils";
 import { CashflowChart, CashflowMiniChart, type CashflowMode } from "@/components/cashflow/cashflow-chart";
 import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownRight, Landmark, Building2 } from "lucide-react";
 
@@ -138,27 +138,11 @@ export default async function CashflowPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      {/* Mode-Toggle */}
-      <div className="inline-flex rounded-lg border bg-muted/50 p-1 gap-1 w-fit">
-        <Link
-          href={`/cashflow${baseQuery ? `?${baseQuery.slice(1)}` : ""}`}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            !isSimple ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Vollständig
-        </Link>
-        <Link
-          href={`/cashflow?view=simple${baseQuery}`}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-            isSimple ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          Vereinfacht (nur Kalt vs. Darlehen)
-        </Link>
-      </div>
+      {/* Ansicht (Reiter) */}
+      <SectionTabs tabs={[
+        { href: `/cashflow${baseQuery ? `?${baseQuery.slice(1)}` : ""}`, label: "Vollständig", active: !isSimple },
+        { href: `/cashflow?view=simple${baseQuery}`, label: "Vereinfacht (Kaltmiete vs. Darlehen)", active: isSimple },
+      ]} />
 
       {/* KPI-Karten */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${isSimple ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 sm:gap-4`}>
