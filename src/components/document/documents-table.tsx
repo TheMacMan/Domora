@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { deleteDocumentAction } from "@/server/actions/documents";
-import { toast } from "@/lib/toast";
+import { useState } from "react";
+import type { DocumentTarget } from "@/server/actions/documents";
 import { DocumentPreview } from "./document-preview";
+import { DocumentEditButton } from "./document-edit-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Trash2, Eye } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
 import { formatDateObj as formatDate } from "@/lib/dates";
-import type { EntityType } from "@/lib/validators/document";
 
 type Doc = {
   id: string;
@@ -18,6 +16,8 @@ type Doc = {
   sizeBytes: number;
   tag: string;
   notes: string | null;
+  title: string | null;
+  year: number | null;
   createdAt: Date;
   entityType: string;
   entityId: string;
@@ -25,8 +25,7 @@ type Doc = {
 
 type Props = {
   docs: Doc[];
-  entityType: EntityType;
-  entityId: string;
+  targets: DocumentTarget[];
 };
 
 function formatBytes(bytes: number) {
@@ -37,23 +36,8 @@ function formatBytes(bytes: number) {
 
 type PreviewState = { docId: string; filename: string; mimeType: string } | null;
 
-export function DocumentsTable({ docs, entityType, entityId }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+export function DocumentsTable({ docs, targets }: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
-
-  function handleDelete(docId: string, filename: string) {
-    if (!window.confirm(`„${filename}" entfernen?\n\nDas Dokument wird ausgeblendet, die Datei bleibt für die Aufbewahrungsfrist archiviert.`)) return;
-    startTransition(async () => {
-      const res = await deleteDocumentAction(docId, entityType, entityId);
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success("Dokument entfernt");
-      router.refresh();
-    });
-  }
 
   return (
     <>
@@ -102,14 +86,16 @@ export function DocumentsTable({ docs, entityType, entityId }: Props) {
                       onClick={() => setPreview({ docId: doc.id, filename: doc.filename, mimeType: doc.mimeType })}
                       className="text-left hover:underline focus-visible:outline-none focus-visible:underline"
                     >
-                      {doc.filename}
+                      {doc.title ?? doc.filename}
                     </button>
+                    {doc.title && <p className="text-xs text-muted-foreground truncate">{doc.filename}</p>}
                     {doc.notes && <p className="text-xs text-muted-foreground mt-0.5">{doc.notes}</p>}
                   </td>
 
                   {/* Category */}
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <Badge variant="secondary">{doc.tag}</Badge>
+                    {doc.year != null && <span className="ml-2 text-xs text-muted-foreground tabular-nums">{doc.year}</span>}
                   </td>
 
                   {/* Size */}
@@ -135,17 +121,10 @@ export function DocumentsTable({ docs, entityType, entityId }: Props) {
                       >
                         <Eye className="size-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        className="size-7 text-muted-foreground hover:text-destructive md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                        disabled={isPending}
-                        onClick={() => handleDelete(doc.id, doc.filename)}
-                        title="Löschen"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
+                      <DocumentEditButton
+                        doc={{ id: doc.id, filename: doc.filename, title: doc.title, tag: doc.tag, year: doc.year, notes: doc.notes, entityType: doc.entityType, entityId: doc.entityId }}
+                        targets={targets}
+                      />
                     </div>
                   </td>
                 </tr>

@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { FileText, ExternalLink } from "lucide-react";
+import { Suspense } from "react";
+import { FileText, FileSpreadsheet, Image as ImageIcon, ExternalLink, ShieldAlert } from "lucide-react";
 import { getAllDocumentsAction } from "@/server/actions/documents";
 import { Badge } from "@/components/ui/badge";
+import { Private } from "@/components/private";
 import { formatDateObj } from "@/lib/dates";
-import { DOCUMENT_TAGS, GENERAL_ENTITY_ID } from "@/lib/validators/document";
-import { DocumentsSection } from "@/components/document/documents-section";
+import { GENERAL_ENTITY_ID, SENSITIVE_TENANT_TAGS } from "@/lib/validators/document";
+import { DocumentUploadForm } from "@/components/document/document-upload-form";
+import { DocumentFilters } from "@/components/document/document-filters";
+import { DocumentEditButton } from "@/components/document/document-edit-button";
 
 export const metadata = { title: "Dokumente – Domora" };
 
@@ -14,89 +18,135 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const ENTITY_KIND: Record<string, string> = { tenant: "Mieter", property: "Objekt", lease: "Vertrag", general: "Zuordnung" };
+function DocIcon({ mime }: { mime: string }) {
+  if (mime.startsWith("image/")) return <ImageIcon className="size-5 text-muted-foreground shrink-0 mt-0.5" />;
+  if (/sheet|excel|csv/.test(mime)) return <FileSpreadsheet className="size-5 text-muted-foreground shrink-0 mt-0.5" />;
+  return <FileText className="size-5 text-muted-foreground shrink-0 mt-0.5" />;
+}
 
-// Übersicht aller Dokumente. Hochgeladen wird beim jeweiligen Mieter, Objekt oder Vertrag.
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ tag?: string }> }) {
-  const { tag } = await searchParams;
-  const all = await getAllDocumentsAction();
-  const activeTag = tag && (DOCUMENT_TAGS as readonly string[]).includes(tag) ? tag : null;
-  const docs = activeTag ? all.filter((d) => d.tag === activeTag) : all;
-  const usedTags = DOCUMENT_TAGS.filter((t) => all.some((d) => d.tag === t));
+type SearchParams = { q?: string; where?: string; year?: string; tag?: string };
 
-  const chip = (active: boolean) =>
-    `inline-flex items-center h-8 px-3 rounded-full border text-xs font-medium transition-colors ${
-      active ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:bg-muted"
-    }`;
+// Alle Dokumente an einer Stelle: suchen, filtern, nach Jahr gruppiert. Hochladen mit wählbarer Zuordnung.
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const sp = await searchParams;
+  const { docs: all, targets } = await getAllDocumentsAction();
+
+  const q = sp.q?.trim().toLowerCase() ?? "";
+  const docs = all.filter((d) => {
+    if (sp.where) {
+      if (sp.where === "tenants" ? !(d.entityType === "tenant" || d.entityType === "lease") : `${d.entityType}:${d.entityId}` !== sp.where) return false;
+    }
+    if (sp.year) {
+      if (sp.year === "none" ? d.year != null : String(d.year) !== sp.year) return false;
+    }
+    if (sp.tag && d.tag !== sp.tag) return false;
+    if (q && ![d.title, d.filename, d.notes, d.entityLabel].some((v) => v?.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  // Nach Jahr gruppieren, neuestes zuerst, „ohne Jahr" am Ende
+  const groups = new Map<string, typeof docs>();
+  for (const d of docs) {
+    const key = d.year != null ? String(d.year) : "none";
+    groups.set(key, [...(groups.get(key) ?? []), d]);
+  }
+  const groupKeys = [...groups.keys()].sort((a, b) => (a === "none" ? 1 : b === "none" ? -1 : Number(b) - Number(a)));
+  const newestYear = groupKeys.find((k) => k !== "none");
+  const filtered = Boolean(sp.q || sp.where || sp.year || sp.tag);
+
+  // Filteroptionen aus dem Bestand
+  const whereOptions = [
+    { value: `general:${GENERAL_ENTITY_ID}`, label: "Allgemein" },
+    ...targets
+      .filter((t) => t.group === "Objekte" && all.some((d) => `${d.entityType}:${d.entityId}` === t.value))
+      .map((t) => ({ value: t.value, label: t.label })),
+    ...(all.some((d) => d.entityType === "tenant" || d.entityType === "lease") ? [{ value: "tenants", label: "Mieter & Verträge" }] : []),
+  ];
+  const years = [...new Set(all.map((d) => (d.year != null ? String(d.year) : "none")))].sort((a, b) =>
+    a === "none" ? 1 : b === "none" ? -1 : Number(b) - Number(a),
+  );
+  const tags = [...new Set(all.map((d) => d.tag))].sort((a, b) => a.localeCompare(b, "de"));
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dokumente</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Objektübergreifendes lädst du hier hoch. Dokumente zu einem bestimmten{" "}
-          <Link href="/properties" className="underline">Objekt</Link>,{" "}
-          <Link href="/leases" className="underline">Vertrag</Link> oder{" "}
-          <Link href="/tenants" className="underline">Mieter</Link> dort (unten auf der Seite).
-        </p>
-      </div>
-
-      <div className="rounded-xl border bg-card p-4">
-        <DocumentsSection
-          entityType="general"
-          entityId={GENERAL_ENTITY_ID}
-          revalidateUrl="/documents"
-          title="Allgemeine Dokumente"
-          description="Objektübergreifend — z. B. Steuererklärungen, Bescheide, Bank- und Versicherungsunterlagen."
-        />
-      </div>
-
-      <h2 className="text-base font-semibold">Alle Dokumente</h2>
-
-      {usedTags.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          <Link href="/documents" className={chip(!activeTag)}>Alle ({all.length})</Link>
-          {usedTags.map((t) => (
-            <Link key={t} href={`/documents?tag=${encodeURIComponent(t)}`} className={chip(activeTag === t)}>
-              {t} ({all.filter((d) => d.tag === t).length})
-            </Link>
-          ))}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dokumente</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {all.length} Dokumente{filtered && ` · ${docs.length} gefiltert`} · Belege 10 Jahre aufbewahren
+          </p>
         </div>
-      )}
+        <DocumentUploadForm entityType="general" entityId={GENERAL_ENTITY_ID} targets={targets} />
+      </div>
+
+      <Suspense>
+        <DocumentFilters whereOptions={whereOptions} years={years} tags={tags} />
+      </Suspense>
 
       {docs.length === 0 ? (
         <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">
-          {all.length === 0 ? "Noch keine Dokumente hochgeladen." : "Keine Dokumente in dieser Kategorie."}
+          {all.length === 0 ? "Noch keine Dokumente hochgeladen." : "Keine Dokumente für diese Filter."}
         </div>
       ) : (
-        <ul className="rounded-xl border bg-card divide-y">
-          {docs.map((d) => (
-            <li key={d.id} className="flex items-start gap-3 px-4 py-3">
-              <FileText className="size-5 text-muted-foreground shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">{d.filename}</p>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5 text-xs text-muted-foreground">
-                  <Badge variant="secondary" className="text-[10px]">{d.tag}</Badge>
-                  <span>
-                    {ENTITY_KIND[d.entityType] ?? d.entityType}:{" "}
-                    <Link href={d.entityHref} className="underline hover:text-foreground">{d.entityLabel}</Link>
-                  </span>
-                  <span>· {formatDateObj(d.createdAt)} · {formatBytes(d.sizeBytes)}</span>
-                </div>
-                {d.notes && <p className="text-xs text-muted-foreground mt-1 break-words">{d.notes}</p>}
-              </div>
-              <a
-                href={`/api/documents/${d.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="size-10 -my-1 -mr-2 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 shrink-0"
-                aria-label={`${d.filename} öffnen`}
-              >
-                <ExternalLink className="size-4" />
-              </a>
-            </li>
-          ))}
-        </ul>
+        groupKeys.map((key) => {
+          const list = groups.get(key)!;
+          // Ungefiltert: die zwei neuesten Jahre offen, ältere eingeklappt
+          const open = filtered || key === newestYear || (newestYear != null && key !== "none" && Number(key) >= Number(newestYear) - 1);
+          return (
+            <details key={key} open={open} className="group rounded-xl border bg-card">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                <span className="text-sm font-semibold">{key === "none" ? "Ohne Jahr" : key}</span>
+                <span className="text-xs text-muted-foreground">
+                  {list.length} {list.length === 1 ? "Dokument" : "Dokumente"}
+                  <span className="ml-2 inline-block transition-transform group-open:rotate-90">›</span>
+                </span>
+              </summary>
+              <ul className="divide-y border-t">
+                {list.map((d) => (
+                  <li key={d.id} className="flex items-start gap-3 px-4 py-3">
+                    <DocIcon mime={d.mimeType} />
+                    <div className="min-w-0 flex-1">
+                      <a href={`/api/documents/${d.id}`} target="_blank" rel="noopener noreferrer" className="block truncate font-medium hover:underline">
+                        {d.entityType === "tenant" ? <Private>{d.title ?? d.filename}</Private> : d.title ?? d.filename}
+                      </a>
+                      {d.title && <p className="truncate text-xs text-muted-foreground">{d.filename}</p>}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="text-[10px]">{d.tag}</Badge>
+                        <Link href={d.entityHref} className="underline hover:text-foreground">
+                          {d.entityType === "tenant" ? <Private>{d.entityLabel}</Private> : d.entityLabel}
+                        </Link>
+                        <span>· {formatDateObj(d.createdAt)} · {formatBytes(d.sizeBytes)}</span>
+                      </div>
+                      {d.notes && <p className="mt-1 break-words text-xs text-muted-foreground">{d.notes}</p>}
+                      {SENSITIVE_TENANT_TAGS.includes(d.tag) && (
+                        <p className="mt-1 inline-flex items-center gap-1 text-xs text-amber-600">
+                          <ShieldAlert className="size-3.5" />
+                          Personenbezogen — nur so lange aufbewahren, wie für den Vertrag nötig
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center">
+                      <a
+                        href={`/api/documents/${d.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="size-9 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                        aria-label={`${d.title ?? d.filename} öffnen`}
+                        title="Öffnen"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                      <DocumentEditButton
+                        doc={{ id: d.id, filename: d.filename, title: d.title, tag: d.tag, year: d.year, notes: d.notes, entityType: d.entityType, entityId: d.entityId }}
+                        targets={targets}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          );
+        })
       )}
     </div>
   );

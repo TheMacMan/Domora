@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { uploadDocumentAction } from "@/server/actions/documents";
 import {
-  DOCUMENT_TAGS,
+  DOCUMENT_TAG_GROUPS,
   FILE_ACCEPT,
   FILE_TYPES_LABEL,
   resolveFileType,
@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, X, CheckCircle2, AlertCircle, FileUp } from "lucide-react";
+import { suggestTag, suggestYear } from "@/lib/document-suggest";
+import type { DocumentTarget } from "@/server/actions/documents";
 
 const selectClass =
   "border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50";
@@ -24,6 +26,8 @@ type Props = {
   entityType: EntityType;
   entityId: string;
   defaultOpen?: boolean;
+  // Optional: Zuordnung im Formular wählbar (Dokumentenseite)
+  targets?: DocumentTarget[];
 };
 
 type UploadState =
@@ -32,7 +36,8 @@ type UploadState =
   | { kind: "done"; count: number }
   | { kind: "error"; messages: string[] };
 
-export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }: Props) {
+export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, targets }: Props) {
+  const [target, setTarget] = useState(`${entityType}:${entityId}`);
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [isPending, startTransition] = useTransition();
@@ -101,6 +106,8 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
     const form = e.currentTarget;
     const tag = (form.elements.namedItem("tag") as HTMLSelectElement).value;
     const notes = (form.elements.namedItem("notes") as HTMLInputElement).value;
+    const yearInput = (form.elements.namedItem("year") as HTMLInputElement).value.trim();
+    const [targetType, targetId] = target.split(":") as [EntityType, string];
 
     startTransition(async () => {
       const errors: string[] = [];
@@ -110,12 +117,15 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
         const file = selectedFiles[i]!;
         const fd = new FormData();
         fd.append("file", file);
-        fd.append("tag", tag);
+        // „Automatisch": Kategorie und Jahr je Datei aus dem Dateinamen ableiten
+        fd.append("tag", tag === "auto" ? suggestTag(file.name) ?? "Sonstiges" : tag);
+        const year = yearInput || String(suggestYear(file.name) ?? "");
+        if (year) fd.append("year", year);
         if (notes) fd.append("notes", notes);
 
         // Netzwerk-/Serverfehler (z. B. Größenlimit) abfangen statt die Seite abstürzen zu lassen
         try {
-          const result = await uploadDocumentAction(entityType, entityId, fd);
+          const result = await uploadDocumentAction(targetType, targetId, fd);
           if (!result.ok) errors.push(`${file.name}: ${result.error}`);
         } catch {
           errors.push(`${file.name}: Hochladen fehlgeschlagen (Server-Fehler). Bitte erneut versuchen.`);
@@ -227,6 +237,9 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
               {selectedFiles.map((f, i) => (
                 <li key={`${f.name}-${f.size}`} className="flex items-center gap-2 pl-3 pr-1 py-1">
                   <span className="truncate flex-1">{f.name}</span>
+                  <span className="hidden sm:inline text-xs text-muted-foreground shrink-0">
+                    {[suggestTag(f.name), suggestYear(f.name)].filter(Boolean).join(" · ")}
+                  </span>
                   <span className="text-xs text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
                   <button
                     type="button"
@@ -243,14 +256,38 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false }
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {targets && (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="doc-target">Zuordnung</Label>
+            <select id="doc-target" className={selectClass} disabled={isUploading} value={target} onChange={(e) => setTarget(e.target.value)}>
+              {(["Allgemein", "Objekte", "Mieter", "Verträge"] as const).map((g) => {
+                const opts = targets.filter((t) => t.group === g);
+                if (opts.length === 0) return null;
+                return (
+                  <optgroup key={g} label={g}>
+                    {opts.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </optgroup>
+                );
+              })}
+            </select>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="doc-tag">Kategorie</Label>
-            <select id="doc-tag" name="tag" className={selectClass} disabled={isUploading} defaultValue="Sonstiges">
-              {DOCUMENT_TAGS.map((t) => (
-                <option key={t} value={t}>{t}</option>
+            <select id="doc-tag" name="tag" className={selectClass} disabled={isUploading} defaultValue="auto">
+              <option value="auto">Automatisch erkennen</option>
+              {DOCUMENT_TAG_GROUPS.map((g) => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.tags.map((t) => <option key={t} value={t}>{t}</option>)}
+                </optgroup>
               ))}
             </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="doc-year">Jahr <span className="text-muted-foreground font-normal">– sonst aus Dateiname</span></Label>
+            <Input id="doc-year" name="year" inputMode="numeric" pattern="(19|20)[0-9]{2}" placeholder="automatisch" disabled={isUploading} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="doc-notes">Notiz <span className="text-muted-foreground font-normal">– optional</span></Label>

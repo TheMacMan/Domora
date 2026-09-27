@@ -1,18 +1,36 @@
 import { z } from "zod";
 
+// Kategorien — gruppiert nach Themen. Ältere Werte (z. B. „Beleg“) bleiben gültig.
+export const DOCUMENT_TAG_GROUPS = [
+  { label: "Steuer & Finanzen", tags: ["Steuer", "Darlehen & Zinsen", "Versicherung"] },
+  { label: "Objekt & Nebenkosten", tags: ["Wasser & Abwasser", "Energie", "Grundsteuer & Gebühren", "Handwerker & Renovierung", "WEG"] },
+  { label: "Mieter", tags: ["Mietvertrag", "Übergabeprotokoll", "Personalausweis", "Verdienstnachweis", "SCHUFA"] },
+  { label: "Allgemein", tags: ["Korrespondenz", "Beleg", "Sonstiges"] },
+] as const;
+
 export const DOCUMENT_TAGS = [
+  "Steuer",
+  "Darlehen & Zinsen",
+  "Versicherung",
+  "Wasser & Abwasser",
+  "Energie",
+  "Grundsteuer & Gebühren",
+  "Handwerker & Renovierung",
+  "WEG",
+  "Mietvertrag",
+  "Übergabeprotokoll",
   "Personalausweis",
   "Verdienstnachweis",
   "SCHUFA",
-  "Mietvertrag",
-  "Übergabeprotokoll",
-  "Beleg",
   "Korrespondenz",
-  "Steuer",
+  "Beleg",
   "Sonstiges",
 ] as const;
 
 export type DocumentTag = (typeof DOCUMENT_TAGS)[number];
+
+// Personenbezogene Mieterunterlagen: nur so lange aufbewahren, wie nötig (DSGVO)
+export const SENSITIVE_TENANT_TAGS: readonly string[] = ["Personalausweis", "Verdienstnachweis", "SCHUFA"];
 
 // "general" = objektübergreifend (z. B. Steuererklärung, Bescheide) — entityId ist dann "general"
 export const ENTITY_TYPES = ["tenant", "property", "lease", "general"] as const;
@@ -55,9 +73,21 @@ export function isPreviewable(mime: string) {
 export const MAX_FILE_SIZE_MB = 10;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
+const yearField = z.number().int().min(1990).max(2100).optional();
+
 export const documentMetaSchema = z.object({
   tag: z.enum(DOCUMENT_TAGS),
   notes: z.string().max(500).optional(),
+  year: yearField,
+  title: z.string().max(200).optional(),
 });
 
 export type DocumentMetaInput = z.infer<typeof documentMetaSchema>;
+
+// Nachträgliches Bearbeiten inkl. Verschieben (Zuordnung ändern)
+export const documentUpdateSchema = documentMetaSchema.extend({
+  entityType: z.enum(ENTITY_TYPES),
+  entityId: z.string().min(1).max(40),
+});
+
+export type DocumentUpdateInput = z.infer<typeof documentUpdateSchema>;

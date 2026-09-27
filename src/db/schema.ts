@@ -297,8 +297,10 @@ export const documents = sqliteTable("documents", {
   sizeBytes: integer("size_bytes").notNull(),
   entityType: text("entity_type").notNull(), // 'tenant' | 'property' | 'lease'
   entityId: text("entity_id").notNull(),
-  tag: text("tag").notNull(), // Personalausweis | Verdienstnachweis | SCHUFA | Mietvertrag | Übergabeprotokoll | Beleg | Korrespondenz | Sonstiges
+  tag: text("tag").notNull(), // Kategorie, siehe DOCUMENT_TAGS in lib/validators/document.ts
   notes: text("notes"),
+  year: integer("year"),   // Beleg-/Steuerjahr (für Filter und Gruppierung)
+  title: text("title"),    // optionaler Anzeigename statt Dateiname
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

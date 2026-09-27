@@ -1,4 +1,4 @@
-import { getDocumentsAction } from "@/server/actions/documents";
+import { getDocumentsAction, getDocumentTargetsAction } from "@/server/actions/documents";
 import { DocumentUploadForm } from "./document-upload-form";
 import { DocumentsTable } from "./documents-table";
 import type { EntityType } from "@/lib/validators/document";
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export async function DocumentsSection({ entityType, entityId, title = "Dokumente", description }: Props) {
-  const docs = await getDocumentsAction(entityType, entityId);
+  const [docs, targets] = await Promise.all([getDocumentsAction(entityType, entityId), getDocumentTargetsAction()]);
   const isEmpty = docs.length === 0;
 
   return (
@@ -28,7 +28,7 @@ export async function DocumentsSection({ entityType, entityId, title = "Dokument
       {isEmpty ? (
         <DocumentUploadForm entityType={entityType} entityId={entityId} defaultOpen />
       ) : (
-        <DocumentsTable docs={docs} entityType={entityType} entityId={entityId} />
+        <DocumentsTable docs={docs} targets={targets} />
       )}
     </div>
   );
