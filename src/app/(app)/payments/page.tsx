@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { revalidatePath } from "next/cache";
 import { getPaymentsByMonthAction, getOpenPaymentsAction, generatePaymentsAction, markAsUnpaidAction } from "@/server/actions/payments";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatMonthLong as formatMonthLabel, currentYearMonth, offsetMonth, todayLocal } from "@/lib/dates";
 import { Private } from "@/components/private";
-import { CheckCircle2, Pencil, TrendingUp, AlertTriangle, Clock, RotateCcw, LayoutGrid } from "lucide-react";
+import { CheckCircle2, Pencil, TrendingUp, AlertTriangle, Clock, RotateCcw } from "lucide-react";
 import { PartialPaymentButton } from "@/components/payment/partial-payment-button";
 import { MarkPaidButton } from "@/components/payment/mark-paid-button";
 import { DeleteUnpaidButton } from "@/components/payment/delete-unpaid-button";
@@ -83,12 +84,6 @@ export default async function PaymentsPage({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-bold tracking-tight">Zahlungen</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button asChild size="sm" variant="outline">
-            <Link href={`/payments/overview?year=${ym.slice(0, 4)}`}>
-              <LayoutGrid className="size-4" />
-              Jahresübersicht
-            </Link>
-          </Button>
           <DeleteUnpaidButton />
           <form action={generate}>
             <input type="hidden" name="month" value={ym} />
@@ -98,6 +93,11 @@ export default async function PaymentsPage({
           </form>
         </div>
       </div>
+
+      <SectionTabs tabs={[
+        { href: `/payments?month=${ym}`, label: "Monat", active: true },
+        { href: `/payments/overview?year=${ym.slice(0, 4)}`, label: "Jahresübersicht", active: false },
+      ]} />
 
       {/* Monatsnavigation */}
       <div className="flex items-center gap-2">

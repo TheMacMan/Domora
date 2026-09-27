@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { revalidatePath } from "next/cache";
 import {
   getExpenseSchedulesAction,
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { CATEGORY_LABELS } from "@/lib/expense";
-import { Plus, Pencil, Trash2, Repeat, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, Repeat } from "lucide-react";
 
 export const metadata = { title: "Abos – Domora" };
 
@@ -47,13 +48,7 @@ export default async function ExpenseSchedulesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2">
-            <Link href="/expenses">
-              <ArrowLeft className="size-4" />
-              Zurück zu Ausgaben
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Abos</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Ausgaben</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Monatlich wiederkehrende Ausgaben (z. B. Hausgeld). Generiert automatisch eine
             Buchung pro Monat.
@@ -66,6 +61,11 @@ export default async function ExpenseSchedulesPage() {
           </Link>
         </Button>
       </div>
+
+      <SectionTabs tabs={[
+        { href: "/expenses", label: "Einzelbuchungen", active: false },
+        { href: "/expenses/recurring", label: "Abos (wiederkehrend)", active: true },
+      ]} />
 
       {schedules.length === 0 ? (
         <div className="rounded-xl border border-dashed py-16 text-center">

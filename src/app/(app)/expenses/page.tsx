@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getExpensesAction } from "@/server/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/money";
@@ -161,12 +162,6 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           )}
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/expenses/recurring">
-              <Repeat className="size-4" />
-              Abos
-            </Link>
-          </Button>
           <Button asChild size="sm">
             <Link href="/expenses/new">
               <Plus className="size-4" />
@@ -175,6 +170,11 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           </Button>
         </div>
       </div>
+
+      <SectionTabs tabs={[
+        { href: "/expenses", label: "Einzelbuchungen", active: true },
+        { href: "/expenses/recurring", label: "Abos (wiederkehrend)", active: false },
+      ]} />
 
       {all.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground rounded-xl border border-dashed">

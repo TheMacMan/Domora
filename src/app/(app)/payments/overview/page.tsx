@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getPaymentMatrixAction } from "@/server/actions/payments";
 import { Button } from "@/components/ui/button";
 import { Private } from "@/components/private";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import type { MatrixCell, MatrixCellStatus } from "@/lib/payment-matrix";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const metadata = { title: "Zahlungs-Jahresübersicht – Domora" };
 
@@ -78,17 +79,16 @@ export default async function PaymentOverviewPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link href="/payments">
-            <ArrowLeft className="size-4" />
-            Zahlungen
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Jahresübersicht Zahlungen</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Zahlungen</h1>
         <p className="text-sm text-muted-foreground">
           Je Mietvertrag und Monat: Soll-Miete (Kalt + NK) gegen die Zahlungseingänge. Ein Feld öffnet die Zahlung.
         </p>
       </div>
+
+      <SectionTabs tabs={[
+        { href: "/payments", label: "Monat", active: false },
+        { href: `/payments/overview?year=${year}`, label: "Jahresübersicht", active: true },
+      ]} />
 
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="sm" aria-label="Vorjahr">

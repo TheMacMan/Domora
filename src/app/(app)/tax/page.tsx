@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getTaxPropertiesAction, getAnlageVAction, getTaxEarliestYearAction } from "@/server/actions/tax";
 import { Button } from "@/components/ui/button";
 import { TaxYearSelect } from "@/components/tax/tax-year-select";
 import { formatMoney } from "@/lib/money";
-import { ClipboardList, FileDown } from "lucide-react";
+import { FileDown } from "lucide-react";
 
 export const metadata = { title: "Anlage V – Domora" };
 
@@ -44,12 +45,6 @@ export default async function TaxPage({
         <h1 className="text-2xl font-bold tracking-tight">Anlage V</h1>
         {ergebnis && (
           <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline">
-              <Link href={`/tax/elster?propertyId=${selectedId}&year=${year}`}>
-                <ClipboardList className="size-4" />
-                ELSTER-Übertragung
-              </Link>
-            </Button>
             <Button asChild size="sm">
               <a href={`/api/tax?propertyId=${selectedId}&year=${year}`} download>
                 <FileDown className="size-4" />
@@ -59,6 +54,11 @@ export default async function TaxPage({
           </div>
         )}
       </div>
+
+      <SectionTabs tabs={[
+        { href: `/tax?propertyId=${selectedId ?? ""}&year=${year}`, label: "Übersicht", active: true },
+        { href: `/tax/elster?propertyId=${selectedId ?? ""}&year=${year}`, label: "ELSTER-Übertragung", active: false },
+      ]} />
 
       {/* Filter */}
       <div className="flex flex-wrap gap-3">

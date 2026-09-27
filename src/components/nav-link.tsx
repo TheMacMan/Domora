@@ -8,13 +8,19 @@ export function NavLink({
   href,
   icon,
   children,
+  also = [],
 }: {
   href: string;
   icon: React.ReactNode;
   children: React.ReactNode;
+  // weitere Pfade, unter denen der Eintrag aktiv ist (z. B. Reiter eines Bereichs)
+  also?: string[];
 }) {
   const pathname = usePathname();
-  const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+  const isActive =
+    pathname === href ||
+    (href !== "/dashboard" && pathname.startsWith(href)) ||
+    also.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   return (
     <Link

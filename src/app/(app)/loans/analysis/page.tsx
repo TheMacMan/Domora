@@ -1,8 +1,6 @@
-import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import dynamic from "next/dynamic";
 import { getLoanAnalyticsAction } from "@/server/actions/loans";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { FixedRateTimeline } from "@/components/loan/fixed-rate-timeline";
 import { buildFixedRateTimeline } from "@/lib/loan-projection";
 import { todayLocal } from "@/lib/dates";
@@ -32,17 +30,16 @@ export default async function LoanAuswertungPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="icon">
-          <Link href="/loans"><ArrowLeft className="size-4" /></Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Darlehen – Auswertung</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {loans.length} Darlehen · Projektion basiert auf aktuellem Zinssatz und Rate
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Darlehen</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {loans.length} Darlehen · Projektion basiert auf aktuellem Zinssatz und Rate
+        </p>
       </div>
+      <SectionTabs tabs={[
+        { href: "/loans", label: "Übersicht", active: false },
+        { href: "/loans/analysis", label: "Auswertung & Zinsbindungen", active: true },
+      ]} />
 
       {loans.length === 0 ? (
         <div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground text-sm">

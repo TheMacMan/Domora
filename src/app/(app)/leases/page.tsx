@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getLeasesAction } from "@/server/actions/leases";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -148,7 +149,7 @@ export default async function LeasesPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mietverträge</h1>
           {leaseList.length > 0 && (
@@ -166,6 +167,10 @@ export default async function LeasesPage({
           </Link>
         </Button>
       </div>
+      <SectionTabs className="mb-6" tabs={[
+        { href: "/leases", label: "Verträge", active: true },
+        { href: "/cpi", label: "Mietentwicklung (VPI)", active: false },
+      ]} />
 
       {leaseList.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground rounded-xl border border-dashed">

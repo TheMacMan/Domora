@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getTaxPropertiesAction, getElsterAnlageVAction } from "@/server/actions/tax";
 import { Button } from "@/components/ui/button";
 import { CopyValue } from "@/components/tax/copy-value";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import type { ElsterEntry, ElsterSection } from "@/lib/tax/elster";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 export const metadata = { title: "ELSTER-Übertragung – Domora" };
 
@@ -100,18 +101,17 @@ export default async function ElsterPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link href={`/tax?propertyId=${selectedId ?? ""}&year=${year}`}>
-            <ArrowLeft className="size-4" />
-            Anlage V
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">ELSTER-Übertragung</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Anlage V</h1>
         <p className="text-sm text-muted-foreground">
           Werte in der Zeilenstruktur der Anlage V. Einnahmen sind auf volle Euro abgerundet,
           Werbungskosten aufgerundet. Tippe auf einen Betrag, um ihn zu kopieren.
         </p>
       </div>
+
+      <SectionTabs tabs={[
+        { href: `/tax?propertyId=${selectedId ?? ""}&year=${year}`, label: "Übersicht", active: false },
+        { href: `/tax/elster?propertyId=${selectedId ?? ""}&year=${year}`, label: "ELSTER-Übertragung", active: true },
+      ]} />
 
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col gap-1">

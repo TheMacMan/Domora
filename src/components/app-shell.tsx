@@ -16,7 +16,6 @@ import {
   Landmark,
   FolderOpen,
   Calculator,
-  TrendingUp,
   ArrowLeftRight,
   LogOut,
   Menu,
@@ -54,30 +53,29 @@ function SidebarContent({ userName, logoutAction }: { userName: string; logoutAc
           Dashboard
         </NavLink>
 
-        <NavSection label="Stammdaten">
+        <NavSection label="Vermietung">
           <NavLink href="/properties" icon={<Building2 className="size-4 shrink-0" />}>Objekte</NavLink>
           <NavLink href="/tenants" icon={<Users className="size-4 shrink-0" />}>Mieter</NavLink>
-          <NavLink href="/leases" icon={<FileSignature className="size-4 shrink-0" />}>Verträge</NavLink>
+          <NavLink href="/leases" also={["/cpi"]} icon={<FileSignature className="size-4 shrink-0" />}>Verträge</NavLink>
         </NavSection>
 
-        <NavSection label="Finanzen">
+        <NavSection label="Geld">
           <NavLink href="/payments" icon={<Banknote className="size-4 shrink-0" />}>Zahlungen</NavLink>
           <NavLink href="/expenses" icon={<Receipt className="size-4 shrink-0" />}>Ausgaben</NavLink>
-          <NavLink href="/weg-statements" icon={<FilePieChart className="size-4 shrink-0" />}>WEG-Abrechnung</NavLink>
           <NavLink href="/loans" icon={<Landmark className="size-4 shrink-0" />}>Darlehen</NavLink>
           <NavLink href="/cashflow" icon={<ArrowLeftRight className="size-4 shrink-0" />}>Cashflow</NavLink>
-          <NavLink href="/cpi" icon={<TrendingUp className="size-4 shrink-0" />}>Mietentwicklung</NavLink>
         </NavSection>
 
-        <NavSection label="Steuer & Dokumente">
-          <NavLink href="/documents" icon={<FolderOpen className="size-4 shrink-0" />}>Dokumente</NavLink>
+        <NavSection label="Abrechnungen & Steuer">
           <NavLink href="/service-charges" icon={<ClipboardList className="size-4 shrink-0" />}>NK-Abrechnung</NavLink>
+          <NavLink href="/weg-statements" icon={<FilePieChart className="size-4 shrink-0" />}>WEG-Abrechnung</NavLink>
           <NavLink href="/tax" icon={<Calculator className="size-4 shrink-0" />}>Anlage V</NavLink>
+          <NavLink href="/documents" icon={<FolderOpen className="size-4 shrink-0" />}>Dokumente</NavLink>
         </NavSection>
 
-        <NavSection label="Über">
+        <div className="pt-3">
           <NavLink href="/settings" icon={<Settings className="size-4 shrink-0" />}>Einstellungen</NavLink>
-        </NavSection>
+        </div>
       </nav>
 
       <div className="px-3 py-3 border-t flex items-center gap-2 shrink-0">

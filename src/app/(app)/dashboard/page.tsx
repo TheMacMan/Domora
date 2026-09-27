@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { DashboardTasks } from "@/components/dashboard-tasks";
+import { getDashboardTasksAction } from "@/server/actions/dashboard";
 import { db } from "@/db";
 import { leases, payments, units } from "@/db/schema";
 import { and, isNull, gte, lte, or } from "drizzle-orm";
@@ -33,6 +35,7 @@ export default async function DashboardPage() {
 
   const today = todayLocal();
   const ym = currentYearMonth();
+  const tasksPromise = getDashboardTasksAction();
   const monthStart = `${ym}-01`;
 
   const [activeLeases, monthPayments, allUnits, openPayments, allVpi] = await Promise.all([
@@ -133,12 +136,16 @@ export default async function DashboardPage() {
     };
   });
 
+  const tasks = await tasksPromise;
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground mt-1">{formatMonthLabel(ym)}</p>
       </div>
+
+      <DashboardTasks tasks={tasks} />
 
       {/* KPI-Karten */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

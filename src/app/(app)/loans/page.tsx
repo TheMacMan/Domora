@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { SectionTabs } from "@/components/section-tabs";
 import { getLoansAction } from "@/server/actions/loans";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { projectBausparAllocation, type LoanForProjection } from "@/lib/loan-projection";
-import { Plus, Pencil, AlertTriangle, BarChart2, Building2, ArrowRight, PiggyBank } from "lucide-react";
+import { Plus, Pencil, AlertTriangle, Building2, ArrowRight, PiggyBank } from "lucide-react";
 
 export const metadata = { title: "Darlehen – Domora" };
 
@@ -143,7 +144,7 @@ export default async function LoansPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Darlehen</h1>
           {loanList.length > 0 && (
@@ -153,14 +154,6 @@ export default async function LoansPage() {
           )}
         </div>
         <div className="flex gap-2">
-          {loanList.length > 0 && (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/loans/analysis">
-                <BarChart2 className="size-4" />
-                Auswertung
-              </Link>
-            </Button>
-          )}
           <Button asChild size="sm">
             <Link href="/loans/new">
               <Plus className="size-4" />
@@ -169,6 +162,10 @@ export default async function LoansPage() {
           </Button>
         </div>
       </div>
+      <SectionTabs className="mb-6" tabs={[
+        { href: "/loans", label: "Übersicht", active: true },
+        { href: "/loans/analysis", label: "Auswertung & Zinsbindungen", active: false },
+      ]} />
 
       {loanList.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">

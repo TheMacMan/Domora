@@ -38,6 +38,11 @@ Self-hosted Mietverwaltung für 5 Wohneinheiten. Steuerlogik (Anlage V) ist Kern
 - Dark Mode default, Light Mode toggelbar.
 - Sprache: **Deutsch** (UI-Strings, Fehlermeldungen, PDF-Output).
 - Datumsformat: `dd.MM.yyyy`, Geldformat: `1.234,56 €` (de-DE Locale).
+- Navigation: Das Menü (`components/app-shell.tsx`) bleibt bei ca. 12 Einträgen in den Gruppen
+  Vermietung / Geld / Abrechnungen & Steuer. Neue Ansichten eines Bereichs kommen als Reiter
+  (`components/section-tabs.tsx`) in den bestehenden Bereich — kein neuer Menüpunkt, keine
+  versteckten Unterseiten hinter Buttons. Handlungsbedarf gehört zusätzlich in die Aufgabenliste
+  des Dashboards (`lib/dashboard-tasks.ts`).
 
 ### Auth
 - Auth-Logik in `src/lib/auth/`. Nicht woanders Sessions checken.
@@ -71,10 +76,9 @@ src/
       service-charges/    # Nebenkostenabrechnung (NK) pro Mietverhältnis
       weg-statements/     # WEG-Jahresabrechnung
       cpi/                # VPI / Indexmiete (Verbraucherpreisindex)
-      tax/                # Anlage V Export
+      tax/                # Anlage V + ELSTER-Übertragung (Reiter)
+      documents/          # Dokumente (objektübergreifend + Übersicht); Dateien über API-Route app/api/documents/[id]
       settings/
-      # Hinweis: Dokumente haben keine eigene Route – Upload/Anzeige
-      # über components/document/ + API-Route app/api/documents/[id]
   components/
     ui/                 # shadcn (generiert, nicht von Hand editieren außer Theme)
     forms/              # wiederverwendbare Form-Felder

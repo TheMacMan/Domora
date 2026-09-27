@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/section-tabs";
 import { todayLocal } from "@/lib/dates";
 import {
   getVpiEntriesAction,
@@ -46,7 +47,7 @@ export default async function VpiPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Mietentwicklung</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Mietverträge</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Verbraucherpreisindex (Basis 2020 = 100,0) und Erhöhungspotential pro Mietvertrag
           {" · "}
@@ -60,6 +61,10 @@ export default async function VpiPage() {
           </a>
         </p>
       </div>
+      <SectionTabs tabs={[
+        { href: "/leases", label: "Verträge", active: false },
+        { href: "/cpi", label: "Mietentwicklung (VPI)", active: true },
+      ]} />
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">Verbraucherpreisindex</h2>
