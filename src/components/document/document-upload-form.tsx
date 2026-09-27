@@ -168,7 +168,8 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
   const isUploading = isPending || uploadState.kind === "uploading";
 
   return (
-    <div className="rounded-xl border bg-card p-4 space-y-4">
+    // Geöffnet immer volle Breite (auch wenn das Formular in einer Kopfzeile neben der Überschrift sitzt)
+    <div className="w-full basis-full rounded-xl border bg-card p-4 space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Dokumente hochladen</p>
         <button
