@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Pencil, Plus, X, TrendingDown, TrendingUp } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,14 @@ function ChangeBadge({ pct }: { pct: number | null }) {
 export function ConsumptionSection({ propertyId, periods }: { propertyId: string; periods: ConsumptionPeriod[] }) {
   const [isPending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
+  // Wo das Formular für einen neuen Zeitraum erscheint: im jeweiligen Medium oder unten
+  const [newIn, setNewIn] = useState<ConsumptionMedium | "bottom">("bottom");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Geöffnetes Formular in den sichtbaren Bereich holen
+  useEffect(() => {
+    if (editingId !== null) formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [editingId, newIn]);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const series = useMemo(() => buildConsumptionSeries(periods), [periods]);
 
@@ -69,6 +77,7 @@ export function ConsumptionSection({ propertyId, periods }: { propertyId: string
 
   function openNew(medium?: ConsumptionMedium) {
     setDraft({ ...EMPTY, medium: medium ?? EMPTY.medium });
+    setNewIn(medium ?? "bottom");
     setEditingId("new");
   }
 
@@ -136,6 +145,63 @@ export function ConsumptionSection({ propertyId, periods }: { propertyId: string
   const segBtn = (active: boolean) =>
     `h-9 px-3 rounded text-sm font-medium transition-colors ${active ? "bg-background shadow-sm" : "text-muted-foreground"}`;
 
+  const formEl = (
+      <form ref={formRef} onSubmit={save} className="space-y-3 rounded-lg border bg-background p-3">
+        <p className="text-xs font-semibold text-muted-foreground">
+          {editingId === "new" ? "Neuer Abrechnungszeitraum" : "Abrechnungszeitraum bearbeiten"}
+        </p>
+  
+        <div className="space-y-1.5">
+          <Label>Medium</Label>
+          <div className="grid grid-cols-2 gap-1 rounded-md border bg-muted/40 p-1 sm:inline-grid sm:w-auto sm:grid-cols-4">
+            {MEDIA.map((m) => (
+              <button key={m} type="button" className={segBtn(draft.medium === m)} onClick={() => set("medium", m)}>
+                {MEDIUM_META[m].label}
+              </button>
+            ))}
+          </div>
+        </div>
+  
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-start">Zeitraum von</Label>
+            <Input id="cp-start" type="date" required value={draft.periodStart} onChange={(e) => set("periodStart", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-end">bis</Label>
+            <Input id="cp-end" type="date" required value={draft.periodEnd} onChange={(e) => set("periodEnd", e.target.value)} />
+          </div>
+        </div>
+  
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-qty">Verbrauch ({MEDIUM_META[draft.medium].unit})</Label>
+            <Input id="cp-qty" inputMode="decimal" required value={draft.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="z. B. 50882" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-cost">Kosten (€) <span className="font-normal text-muted-foreground">– optional</span></Label>
+            <Input id="cp-cost" inputMode="decimal" value={draft.cost} onChange={(e) => set("cost", e.target.value)} placeholder="lt. Abrechnung" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-adv">Abschläge (€) <span className="font-normal text-muted-foreground">– optional</span></Label>
+            <Input id="cp-adv" inputMode="decimal" value={draft.advance} onChange={(e) => set("advance", e.target.value)} placeholder="bezahlt" />
+          </div>
+        </div>
+  
+        <div className="space-y-1.5">
+          <Label htmlFor="cp-note">Notiz <span className="font-normal text-muted-foreground">– optional</span></Label>
+          <Input id="cp-note" value={draft.note} onChange={(e) => set("note", e.target.value)} placeholder="z. B. Versorger, Rechnungsnummer" />
+        </div>
+  
+        <div className="flex gap-2">
+          <Button type="submit" size="sm" loading={isPending}>Speichern</Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setEditingId(null)} disabled={isPending}>
+            Abbrechen
+          </Button>
+        </div>
+      </form>
+  );
+
   return (
     <div className="space-y-4">
       {series.length === 0 && editingId === null && (
@@ -154,6 +220,7 @@ export function ConsumptionSection({ propertyId, periods }: { propertyId: string
               Zeitraum
             </Button>
           </div>
+          {editingId === "new" && newIn === s.medium && <div className="border-b p-3">{formEl}</div>}
           <ul className="divide-y">
             {s.rows.map((r) => (
               <li key={r.id} className="px-3 py-2.5">
@@ -208,6 +275,7 @@ export function ConsumptionSection({ propertyId, periods }: { propertyId: string
                   )}
                   {r.note && <span className="basis-full break-words">{r.note}</span>}
                 </div>
+                {editingId === r.id && <div className="mt-3">{formEl}</div>}
               </li>
             ))}
           </ul>
@@ -219,62 +287,9 @@ export function ConsumptionSection({ propertyId, periods }: { propertyId: string
           <Plus className="size-4" />
           Verbrauch erfassen
         </Button>
-      ) : (
-        <form onSubmit={save} className="space-y-3 rounded-lg border p-3">
-          <p className="text-xs font-semibold text-muted-foreground">
-            {editingId === "new" ? "Neuer Abrechnungszeitraum" : "Abrechnungszeitraum bearbeiten"}
-          </p>
-
-          <div className="space-y-1.5">
-            <Label>Medium</Label>
-            <div className="grid grid-cols-2 gap-1 rounded-md border bg-muted/40 p-1 sm:inline-grid sm:w-auto sm:grid-cols-4">
-              {MEDIA.map((m) => (
-                <button key={m} type="button" className={segBtn(draft.medium === m)} onClick={() => set("medium", m)}>
-                  {MEDIUM_META[m].label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="cp-start">Zeitraum von</Label>
-              <Input id="cp-start" type="date" required value={draft.periodStart} onChange={(e) => set("periodStart", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cp-end">bis</Label>
-              <Input id="cp-end" type="date" required value={draft.periodEnd} onChange={(e) => set("periodEnd", e.target.value)} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="cp-qty">Verbrauch ({MEDIUM_META[draft.medium].unit})</Label>
-              <Input id="cp-qty" inputMode="decimal" required value={draft.quantity} onChange={(e) => set("quantity", e.target.value)} placeholder="z. B. 50882" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cp-cost">Kosten (€) <span className="font-normal text-muted-foreground">– optional</span></Label>
-              <Input id="cp-cost" inputMode="decimal" value={draft.cost} onChange={(e) => set("cost", e.target.value)} placeholder="lt. Abrechnung" />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cp-adv">Abschläge (€) <span className="font-normal text-muted-foreground">– optional</span></Label>
-              <Input id="cp-adv" inputMode="decimal" value={draft.advance} onChange={(e) => set("advance", e.target.value)} placeholder="bezahlt" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="cp-note">Notiz <span className="font-normal text-muted-foreground">– optional</span></Label>
-            <Input id="cp-note" value={draft.note} onChange={(e) => set("note", e.target.value)} placeholder="z. B. Versorger, Rechnungsnummer" />
-          </div>
-
-          <div className="flex gap-2">
-            <Button type="submit" size="sm" loading={isPending}>Speichern</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setEditingId(null)} disabled={isPending}>
-              Abbrechen
-            </Button>
-          </div>
-        </form>
-      )}
+      ) : editingId === "new" && newIn === "bottom" ? (
+        formEl
+      ) : null}
     </div>
   );
 }
