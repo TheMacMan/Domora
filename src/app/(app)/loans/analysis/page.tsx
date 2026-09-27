@@ -3,6 +3,9 @@ import dynamic from "next/dynamic";
 import { getLoanAnalyticsAction } from "@/server/actions/loans";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { FixedRateTimeline } from "@/components/loan/fixed-rate-timeline";
+import { buildFixedRateTimeline } from "@/lib/loan-projection";
+import { todayLocal } from "@/lib/dates";
 
 const LoanAnalytics = dynamic(() => import("@/components/loan/loan-analytics").then((m) => m.LoanAnalytics), {
   loading: () => (
@@ -24,6 +27,8 @@ export const metadata = { title: "Darlehen – Auswertung" };
 
 export default async function LoanAuswertungPage() {
   const loans = await getLoanAnalyticsAction();
+  const today = todayLocal();
+  const fixedRates = buildFixedRateTimeline(loans, today);
 
   return (
     <div className="space-y-6">
@@ -44,7 +49,10 @@ export default async function LoanAuswertungPage() {
           Noch keine Darlehen erfasst.
         </div>
       ) : (
-        <LoanAnalytics loans={loans} />
+        <>
+          <FixedRateTimeline items={fixedRates} today={today} />
+          <LoanAnalytics loans={loans} />
+        </>
       )}
     </div>
   );

@@ -294,3 +294,77 @@ export function buildYearlyData(loans: LoanForProjection[]) {
 }
 
 export type YearlyRow = ReturnType<typeof buildYearlyData>[number];
+
+// ── Zinsbindungs-Zeitstrahl ──
+
+export type FixedRateStatus = "expired" | "urgent" | "soon" | "ok" | "paid_off" | "unknown";
+
+export type FixedRateItem = {
+  id: string;
+  description: string;
+  contractNumber: string | null;
+  property: string;
+  fixedUntil: string | null;
+  monthsLeft: number | null;        // volle Monate von heute bis Ablauf (negativ = abgelaufen)
+  balanceAtEndCents: number | null; // voraussichtliche Restschuld bei Ablauf der Zinsbindung
+  payoffDate: string | null;        // voraussichtlich getilgt am (falls vor Ablauf)
+  interestRateBps: number;
+  status: FixedRateStatus;
+};
+
+function monthsBetween(from: string, to: string): number {
+  const [fy, fm, fd] = from.split("-").map(Number) as [number, number, number];
+  const [ty, tm, td] = to.split("-").map(Number) as [number, number, number];
+  let months = (ty - fy) * 12 + (tm - fm);
+  if (td < fd) months -= 1;
+  return months;
+}
+
+// Restschuld zu einem Stichtag: letzte (projizierte) Rate bis einschließlich Stichtag,
+// sonst der erfasste Stand, falls er vor dem Stichtag liegt.
+export function balanceAtDate(loan: LoanForProjection, schedule: LoanPayment[], date: string): number | null {
+  let result: number | null = loan.balanceDate <= date ? loan.balanceCents : null;
+  for (const p of schedule) {
+    if (p.dueDate > date) break;
+    result = p.balanceAfterCents;
+  }
+  return result;
+}
+
+export function buildFixedRateTimeline(
+  loans: Array<LoanForProjection & { contractNumber?: string | null; interestFixedUntil?: string | null }>,
+  today: string,
+): FixedRateItem[] {
+  const items = loans
+    .filter((l) => l.loanType !== "bauspar") // Bausparvertrag in der Ansparphase hat keine Zinsbindung
+    .map((l): FixedRateItem => {
+      const fixedUntil = l.interestFixedUntil ?? null;
+      const base = {
+        id: l.id,
+        description: l.description,
+        contractNumber: l.contractNumber ?? null,
+        property: `${l.property.street}, ${l.property.city}`,
+        fixedUntil,
+        interestRateBps: l.interestRateBps,
+      };
+      if (!fixedUntil) {
+        return { ...base, monthsLeft: null, balanceAtEndCents: null, payoffDate: null, status: "unknown" };
+      }
+      const schedule = projectSchedule(l, 600, loans);
+      const payoff = schedule.find((p) => p.balanceAfterCents <= 0 && p.principalCents > 0);
+      const monthsLeft = monthsBetween(today, fixedUntil);
+      if (payoff && payoff.dueDate <= fixedUntil && fixedUntil >= today) {
+        return { ...base, monthsLeft, balanceAtEndCents: 0, payoffDate: payoff.dueDate, status: "paid_off" };
+      }
+      const status: FixedRateStatus =
+        fixedUntil < today ? "expired" : monthsLeft < 6 ? "urgent" : monthsLeft < 24 ? "soon" : "ok";
+      return { ...base, monthsLeft, balanceAtEndCents: balanceAtDate(l, schedule, fixedUntil), payoffDate: null, status };
+    });
+
+  // Zuerst nach Ablaufdatum, Darlehen ohne Angabe zuletzt
+  return items.sort((a, b) => {
+    if (!a.fixedUntil) return b.fixedUntil ? 1 : 0;
+    if (!b.fixedUntil) return -1;
+    return a.fixedUntil.localeCompare(b.fixedUntil);
+  });
+}
