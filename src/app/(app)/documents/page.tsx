@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { FileText, FileSpreadsheet, Image as ImageIcon, ExternalLink, ShieldAlert } from "lucide-react";
+import { FileText, FileSpreadsheet, Image as ImageIcon, ShieldAlert } from "lucide-react";
 import { getAllDocumentsAction } from "@/server/actions/documents";
 import { Badge } from "@/components/ui/badge";
 import { Private } from "@/components/private";
@@ -9,6 +9,7 @@ import { GENERAL_ENTITY_ID, SENSITIVE_TENANT_TAGS } from "@/lib/validators/docum
 import { DocumentUploadForm } from "@/components/document/document-upload-form";
 import { DocumentFilters } from "@/components/document/document-filters";
 import { DocumentEditButton } from "@/components/document/document-edit-button";
+import { DocumentOpenButton } from "@/components/document/document-open-button";
 
 export const metadata = { title: "Dokumente – Domora" };
 
@@ -106,9 +107,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   <li key={d.id} className="flex items-start gap-3 px-4 py-3">
                     <DocIcon mime={d.mimeType} />
                     <div className="min-w-0 flex-1">
-                      <a href={`/api/documents/${d.id}`} target="_blank" rel="noopener noreferrer" className="block truncate font-medium hover:underline">
+                      <DocumentOpenButton doc={{ id: d.id, filename: d.filename, title: d.title, mimeType: d.mimeType }} variant="title">
                         {d.entityType === "tenant" ? <Private>{d.title ?? d.filename}</Private> : d.title ?? d.filename}
-                      </a>
+                      </DocumentOpenButton>
                       {d.title && <p className="truncate text-xs text-muted-foreground">{d.filename}</p>}
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         <Badge variant="secondary" className="text-[10px]">{d.tag}</Badge>
@@ -126,16 +127,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                       )}
                     </div>
                     <div className="flex shrink-0 items-center">
-                      <a
-                        href={`/api/documents/${d.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="size-9 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                        aria-label={`${d.title ?? d.filename} öffnen`}
-                        title="Öffnen"
-                      >
-                        <ExternalLink className="size-4" />
-                      </a>
+                      <DocumentOpenButton doc={{ id: d.id, filename: d.filename, title: d.title, mimeType: d.mimeType }} variant="icon" />
                       <DocumentEditButton
                         doc={{ id: d.id, filename: d.filename, title: d.title, tag: d.tag, year: d.year, notes: d.notes, entityType: d.entityType, entityId: d.entityId }}
                         targets={targets}

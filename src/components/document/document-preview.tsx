@@ -9,10 +9,11 @@ type Props = {
   docId: string;
   filename: string;
   mimeType: string;
+  title?: string; // Anzeigename (sonst Dateiname)
   onClose: () => void;
 };
 
-export function DocumentPreview({ docId, filename, mimeType, onClose }: Props) {
+export function DocumentPreview({ docId, filename, mimeType, title, onClose }: Props) {
   const url = `/api/documents/${docId}`;
   const isImage = mimeType.startsWith("image/");
 
@@ -35,7 +36,7 @@ export function DocumentPreview({ docId, filename, mimeType, onClose }: Props) {
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
-          <p className="text-sm font-medium truncate flex-1">{filename}</p>
+          <p className="text-sm font-medium truncate flex-1">{title ?? filename}</p>
           <a
             href={url}
             download={filename}
@@ -45,7 +46,7 @@ export function DocumentPreview({ docId, filename, mimeType, onClose }: Props) {
             <Download className="size-3.5" />
             Herunterladen
           </a>
-          <Button variant="ghost" size="iconSm" className=" shrink-0" onClick={onClose}>
+          <Button variant="ghost" size="iconSm" className=" shrink-0" onClick={onClose} aria-label="Vorschau schließen">
             <X className="size-4" />
           </Button>
         </div>

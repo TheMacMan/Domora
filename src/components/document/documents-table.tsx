@@ -34,7 +34,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-type PreviewState = { docId: string; filename: string; mimeType: string } | null;
+type PreviewState = { docId: string; filename: string; title?: string; mimeType: string } | null;
 
 export function DocumentsTable({ docs, targets }: Props) {
   const [preview, setPreview] = useState<PreviewState>(null);
@@ -46,6 +46,7 @@ export function DocumentsTable({ docs, targets }: Props) {
           docId={preview.docId}
           filename={preview.filename}
           mimeType={preview.mimeType}
+          title={preview.title}
           onClose={() => setPreview(null)}
         />
       )}
@@ -61,7 +62,7 @@ export function DocumentsTable({ docs, targets }: Props) {
                   <td className="px-3 py-2 w-14">
                     <button
                       type="button"
-                      onClick={() => setPreview({ docId: doc.id, filename: doc.filename, mimeType: doc.mimeType })}
+                      onClick={() => setPreview({ docId: doc.id, filename: doc.filename, title: doc.title ?? undefined, mimeType: doc.mimeType })}
                       className="block rounded overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       title="Vorschau"
                     >
@@ -83,7 +84,7 @@ export function DocumentsTable({ docs, targets }: Props) {
                   <td className="px-2 py-3 font-medium">
                     <button
                       type="button"
-                      onClick={() => setPreview({ docId: doc.id, filename: doc.filename, mimeType: doc.mimeType })}
+                      onClick={() => setPreview({ docId: doc.id, filename: doc.filename, title: doc.title ?? undefined, mimeType: doc.mimeType })}
                       className="text-left hover:underline focus-visible:outline-none focus-visible:underline"
                     >
                       {doc.title ?? doc.filename}
@@ -116,7 +117,7 @@ export function DocumentsTable({ docs, targets }: Props) {
                         size="icon"
                         type="button"
                         className="size-7 text-muted-foreground hover:text-foreground md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                        onClick={() => setPreview({ docId: doc.id, filename: doc.filename, mimeType: doc.mimeType })}
+                        onClick={() => setPreview({ docId: doc.id, filename: doc.filename, title: doc.title ?? undefined, mimeType: doc.mimeType })}
                         title="Vorschau"
                       >
                         <Eye className="size-3.5" />
