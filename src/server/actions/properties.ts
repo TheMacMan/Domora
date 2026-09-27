@@ -178,6 +178,10 @@ export async function getPropertyAction(id: string) {
         where: (d, { isNull }) => isNull(d.deletedAt),
         orderBy: (d, { asc }) => [asc(d.createdAt)],
       },
+      consumptionPeriods: {
+        where: (c, { isNull }) => isNull(c.deletedAt),
+        orderBy: (c, { asc }) => [asc(c.periodStart)],
+      },
     },
   });
 }

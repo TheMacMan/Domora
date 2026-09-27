@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/dates";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { DepreciationItems } from "@/components/property/depreciation-items";
 import { DocumentsSection } from "@/components/document/documents-section";
+import { ConsumptionSection } from "@/components/property/consumption-section";
 
 export const metadata = { title: "Objekt – Domora" };
 
@@ -183,6 +184,28 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
             </table>
           </div>
         )}
+      </div>
+
+      {/* Verbrauchsentwicklung (Gas, Strom, Wasser, Abwasser) */}
+      <div className="rounded-xl border bg-card shadow-sm">
+        <div className="px-5 py-3 border-b">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Verbrauchsentwicklung</p>
+        </div>
+        <div className="px-4 py-4">
+          <ConsumptionSection
+            propertyId={property.id}
+            periods={property.consumptionPeriods.map((c) => ({
+              id: c.id,
+              medium: c.medium,
+              periodStart: c.periodStart,
+              periodEnd: c.periodEnd,
+              quantity: c.quantity,
+              costCents: c.costCents,
+              advanceCents: c.advanceCents,
+              note: c.note,
+            }))}
+          />
+        </div>
       </div>
 
       <DocumentsSection entityType="property" entityId={property.id} revalidateUrl={`/properties/${property.id}`} />

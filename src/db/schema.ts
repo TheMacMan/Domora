@@ -80,6 +80,31 @@ export const propertyDepreciationItems = sqliteTable("property_depreciation_item
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
+// Verbrauch je Abrechnungszeitraum (aus Versorger-/Gebührenbescheiden) — für die Verbrauchsentwicklung
+export const CONSUMPTION_MEDIA = ["gas", "electricity", "water", "wastewater"] as const;
+export type ConsumptionMedium = (typeof CONSUMPTION_MEDIA)[number];
+
+export const consumptionPeriods = sqliteTable("consumption_periods", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id")
+    .notNull()
+    .references(() => properties.id),
+  medium: text("medium", { enum: CONSUMPTION_MEDIA }).notNull(),
+  periodStart: text("period_start").notNull(), // YYYY-MM-DD
+  periodEnd: text("period_end").notNull(),     // YYYY-MM-DD
+  quantity: real("quantity").notNull(),        // kWh (Gas/Strom) bzw. m³ (Wasser/Abwasser)
+  costCents: integer("cost_cents"),            // Kosten des Zeitraums lt. Abrechnung (brutto)
+  advanceCents: integer("advance_cents"),      // darauf geleistete Abschläge/Vorauszahlungen
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
 // Wohneinheiten innerhalb eines Gebäudes
 export const units = sqliteTable("units", {
   id: text("id").primaryKey(),
@@ -467,6 +492,11 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   loans: many(loans),
   expenseSchedules: many(expenseSchedules),
   depreciationItems: many(propertyDepreciationItems),
+  consumptionPeriods: many(consumptionPeriods),
+}));
+
+export const consumptionPeriodsRelations = relations(consumptionPeriods, ({ one }) => ({
+  property: one(properties, { fields: [consumptionPeriods.propertyId], references: [properties.id] }),
 }));
 
 export const propertyDepreciationItemsRelations = relations(propertyDepreciationItems, ({ one }) => ({
