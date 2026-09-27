@@ -5,8 +5,10 @@ import type { ConsumptionMedium } from "@/db/schema";
 
 export const MEDIUM_META: Record<ConsumptionMedium, { label: string; unit: string }> = {
   gas:         { label: "Gas",       unit: "kWh" },
+  heating:     { label: "Heizwärme", unit: "kWh" },   // Wärmemengenzähler (z. B. WEG-Wohnung)
   electricity: { label: "Strom",     unit: "kWh" },
-  water:       { label: "Frischwasser", unit: "m³" },
+  hotwater:    { label: "Warmwasser", unit: "m³" },
+  water:       { label: "Kalt-/Frischwasser", unit: "m³" },
   wastewater:  { label: "Abwasser",  unit: "m³" },
 };
 

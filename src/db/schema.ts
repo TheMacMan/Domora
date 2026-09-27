@@ -81,7 +81,7 @@ export const propertyDepreciationItems = sqliteTable("property_depreciation_item
 });
 
 // Verbrauch je Abrechnungszeitraum (aus Versorger-/Gebührenbescheiden) — für die Verbrauchsentwicklung
-export const CONSUMPTION_MEDIA = ["gas", "electricity", "water", "wastewater"] as const;
+export const CONSUMPTION_MEDIA = ["gas", "heating", "electricity", "hotwater", "water", "wastewater"] as const;
 export type ConsumptionMedium = (typeof CONSUMPTION_MEDIA)[number];
 
 export const consumptionPeriods = sqliteTable("consumption_periods", {
@@ -92,7 +92,7 @@ export const consumptionPeriods = sqliteTable("consumption_periods", {
   medium: text("medium", { enum: CONSUMPTION_MEDIA }).notNull(),
   periodStart: text("period_start").notNull(), // YYYY-MM-DD
   periodEnd: text("period_end").notNull(),     // YYYY-MM-DD
-  quantity: real("quantity").notNull(),        // kWh (Gas/Strom) bzw. m³ (Wasser/Abwasser)
+  quantity: real("quantity").notNull(),        // kWh (Gas/Heizwärme/Strom) bzw. m³ (Warm-/Kaltwasser/Abwasser)
   costCents: integer("cost_cents"),            // Kosten des Zeitraums lt. Abrechnung (brutto)
   advanceCents: integer("advance_cents"),      // darauf geleistete Abschläge/Vorauszahlungen
   note: text("note"),

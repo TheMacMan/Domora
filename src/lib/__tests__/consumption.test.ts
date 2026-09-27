@@ -25,7 +25,7 @@ describe("buildConsumptionSeries", () => {
   ]);
 
   it("gruppiert je Medium in fester Reihenfolge und sortiert chronologisch", () => {
-    expect(series.map((s) => s.medium)).toEqual(["gas", "wastewater"]);
+    expect(series.map((s) => s.medium)).toEqual(["gas", "wastewater"]); // feste Reihenfolge laut MEDIA
     expect(series[1]!.rows.map((r) => r.id)).toEqual(["a", "b"]);
     expect(series[1]!.maxQuantity).toBe(987);
   });

@@ -28,6 +28,7 @@ describe("suggestTag", () => {
     ["Perso - Nathalie - 1-2.jpg", "Personalausweis"],
     ["Entgeltbescheinigung_Carsten_Schäfer.pdf", "Verdienstnachweis"],
     ["Übergabeprotokoll_Carsten_Schäfer.pdf", "Übergabeprotokoll"],
+    ["2025_Betriebskostenabrechnung_Erlensee.pdf", "WEG"],
   ])("%s → %s", (name, tag) => {
     expect(suggestTag(name)).toBe(tag);
   });

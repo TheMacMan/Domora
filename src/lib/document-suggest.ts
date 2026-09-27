@@ -20,7 +20,7 @@ const RULES: Array<[RegExp, DocumentTag]> = [
   [/strom|gas|energie|heiz|tibber|maingau|evd|eva[ _-]/i, "Energie"],
   [/grundsteuer|müll|muell|gebühr|gebuehr|schornstein/i, "Grundsteuer & Gebühren"],
   [/renovier|handwerk|sanierung|rechnung.*(maler|fliesen|elektro|sanitär)/i, "Handwerker & Renovierung"],
-  [/weg|hausgeld|eigentümerversammlung|jahresabrechnung.*verwalt/i, "WEG"],
+  [/weg|hausgeld|eigentümerversammlung|jahresabrechnung|betriebskostenabrechnung/i, "WEG"],
   [/mietvertrag/i, "Mietvertrag"],
   [/übergabe|uebergabe/i, "Übergabeprotokoll"],
   [/perso|ausweis/i, "Personalausweis"],

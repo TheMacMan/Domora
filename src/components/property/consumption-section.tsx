@@ -30,7 +30,9 @@ const EMPTY: Draft = { medium: "gas", periodStart: "", periodEnd: "", quantity: 
 
 const BAR: Record<ConsumptionMedium, string> = {
   gas: "bg-orange-500/80",
+  heating: "bg-red-500/70",
   electricity: "bg-yellow-500/80",
+  hotwater: "bg-rose-400/80",
   water: "bg-sky-500/80",
   wastewater: "bg-slate-500/70",
 };
@@ -153,7 +155,7 @@ export function ConsumptionSection({ propertyId, periods }: { propertyId: string
   
         <div className="space-y-1.5">
           <Label>Medium</Label>
-          <div className="grid grid-cols-2 gap-1 rounded-md border bg-muted/40 p-1 sm:inline-grid sm:w-auto sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-1 rounded-md border bg-muted/40 p-1 sm:inline-grid sm:w-auto sm:grid-cols-3">
             {MEDIA.map((m) => (
               <button key={m} type="button" className={segBtn(draft.medium === m)} onClick={() => set("medium", m)}>
                 {MEDIUM_META[m].label}

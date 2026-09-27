@@ -115,7 +115,7 @@ export async function createWegAbrechnungAction(input: WegAbrechnungInput): Prom
       id: createId(),
       propertyId: input.propertyId,
       category: "weg_saldo",
-      amountCents: Math.abs(saldo),
+      amountCents: saldo, // mit Vorzeichen: > 0 Nachzahlung (Abfluss), < 0 Erstattung (Zufluss)
       date: input.abrechnungsDatum,
       description: `Saldo WEG-Abrechnung ${input.year}${saldo < 0 ? " (Erstattung)" : " (Nachzahlung)"}`,
       isRecurring: false,
@@ -202,7 +202,7 @@ export async function updateWegAbrechnungAction(
       id: createId(),
       propertyId: abr.propertyId,
       category: "weg_saldo",
-      amountCents: Math.abs(saldo),
+      amountCents: saldo, // mit Vorzeichen: > 0 Nachzahlung (Abfluss), < 0 Erstattung (Zufluss)
       date: input.abrechnungsDatum,
       description: `Saldo WEG-Abrechnung ${abr.year}${saldo < 0 ? " (Erstattung)" : " (Nachzahlung)"}`,
       isRecurring: false,
