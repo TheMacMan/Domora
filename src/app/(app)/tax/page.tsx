@@ -142,9 +142,12 @@ export default async function TaxPage({
                 ["Sach-/Haftpflichtversicherung", ergebnis.werbungskosten.versicherungenCents],
                 ["Verwaltungskosten", ergebnis.werbungskosten.verwaltungskostenCents],
                 ["Übrige Betriebskosten (umlegbar)", ergebnis.werbungskosten.betriebskostenCents],
-                ["Nicht umlegbare Kosten", ergebnis.werbungskosten.nichtUmlegbareCents],
+                ["Leerstandskosten / sonstige nicht umlegbare", ergebnis.werbungskosten.nichtUmlegbareCents],
                 ["Sonstige Werbungskosten", ergebnis.werbungskosten.sonstigeCents],
-              ].map(([label, cents]) => (
+              ]
+                // Auffangzeile nur zeigen, wenn es etwas gibt — nicht umlegbare WEG-Kosten stehen unter Verwaltung/Erhaltung
+                .filter(([label, cents]) => cents !== 0 || !(label as string).startsWith("Leerstandskosten"))
+                .map(([label, cents]) => (
                 <div key={label as string} className="flex justify-between">
                   <span className="text-muted-foreground">{label as string}</span>
                   <span className="tabular-nums">{formatMoney(cents as number)}</span>

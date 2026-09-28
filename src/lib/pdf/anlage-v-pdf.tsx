@@ -98,9 +98,12 @@ export function AnlageVPdf({ ergebnis, propertyAddress, belege }: Props) {
     { label: "Sach-/Haftpflichtversicherung", cents: w.versicherungenCents },
     { label: "Verwaltungskosten", cents: w.verwaltungskostenCents, alt: true },
     { label: "Übrige Betriebskosten (umlegbar)", cents: w.betriebskostenCents },
-    { label: "Nicht umlegbare Kosten", cents: w.nichtUmlegbareCents, alt: true },
+    { label: "Leerstandskosten / sonstige nicht umlegbare", cents: w.nichtUmlegbareCents },
     { label: "Sonstige Werbungskosten", cents: w.sonstigeCents },
-  ];
+  ]
+    // Auffangzeile nur bei Betrag; Zebra-Streifen danach neu setzen
+    .filter((r) => r.cents !== 0 || !r.label.startsWith("Leerstandskosten"))
+    .map((r, i) => ({ ...r, alt: i % 2 === 1 }));
 
   return (
     <Document>
