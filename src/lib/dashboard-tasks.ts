@@ -31,6 +31,8 @@ export type TaskInput = {
   vehicleCostsMissingReceipts?: Array<{ year: number; count: number; cents: number }>;
   // Objekte, die sehr häufig angefahren werden (Hinweis regelmäßige Tätigkeitsstätte)
   frequentDestinations?: Array<{ propertyId: string; label: string; year: number; count: number }>;
+  // Datensicherung: Zustand und Zeitpunkt der letzten Sicherung
+  backup?: { health: "ok" | "stale" | "failed" | "missing"; finishedAt: string | null; message: string };
 };
 
 const SEVERITY_ORDER: Record<TaskSeverity, number> = { urgent: 0, warning: 1, info: 2 };
@@ -124,6 +126,19 @@ export function buildDashboardTasks(input: TaskInput): DashboardTask[] {
       detail: "ab 20 € je Buchung · Rechnung oder Bon hochladen und verknüpfen — ohne Beleg nicht in die Steuererklärung übernehmen",
       href: `/expenses?year=${r.year}&beleg=missing`,
       amountCents: r.cents,
+    });
+  }
+
+  if (input.backup && input.backup.health !== "ok") {
+    const b = input.backup;
+    tasks.push({
+      id: "backup",
+      severity: b.health === "stale" ? "warning" : "urgent",
+      title: b.health === "missing" ? "Keine Datensicherung gefunden" : b.health === "failed" ? "Datensicherung fehlgeschlagen" : "Datensicherung veraltet",
+      detail: b.health === "missing"
+        ? "Nächtliche Sicherung prüfen (scripts/backup.sh, Cron 02:15)"
+        : `Letzter Lauf ${b.finishedAt ? fmtDate(b.finishedAt.slice(0, 10)) : "–"}${b.health === "failed" ? ` · ${b.message}` : ""} · NAS-Freigabe und Cron prüfen`,
+      href: "/settings",
     });
   }
 

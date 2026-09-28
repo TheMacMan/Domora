@@ -112,6 +112,14 @@ describe("buildDashboardTasks", () => {
     expect(t[0]!.href).toBe("/expenses?year=2025&beleg=missing");
     expect(t[1]!.title).toBe("1 Ausgabe 2026 ohne Beleg");
   });
+  it("Datensicherung: fehlgeschlagen ist dringend, veraltet eine Warnung, ok keine Aufgabe", () => {
+    const f = buildDashboardTasks({ ...base, backup: { health: "failed", finishedAt: "2026-09-27T02:15:08+02:00", message: "NAS-Freigabe nicht erreichbar" } });
+    expect(f[0]).toMatchObject({ id: "backup", severity: "urgent", title: "Datensicherung fehlgeschlagen" });
+    expect(f[0]!.detail).toContain("27.09.2026");
+    expect(buildDashboardTasks({ ...base, backup: { health: "stale", finishedAt: "2026-09-20T02:15:00+02:00", message: "" } })[0]!.severity).toBe("warning");
+    expect(buildDashboardTasks({ ...base, backup: { health: "ok", finishedAt: "2026-09-27T02:15:00+02:00", message: "" } })).toEqual([]);
+  });
+
   it("Fahrzeug: fehlender km-Stand, Kosten ohne Beleg, häufige Fahrten", () => {
     const t = buildDashboardTasks({
       ...base,

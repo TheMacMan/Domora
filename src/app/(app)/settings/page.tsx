@@ -1,10 +1,13 @@
 import { getSettingsAction } from "@/server/actions/settings";
 import { SettingsForm } from "@/components/settings/settings-form";
+import { BackupCard } from "@/components/settings/backup-card";
+import { readBackupStatus } from "@/server/backup-status";
+import { backupHealth } from "@/lib/backup-status";
 
 export const metadata = { title: "Einstellungen – Domora" };
 
 export default async function EinstellungenPage() {
-  const settings = await getSettingsAction();
+  const [settings, backup] = await Promise.all([getSettingsAction(), readBackupStatus()]);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -14,6 +17,7 @@ export default async function EinstellungenPage() {
           Vermieter-Stammdaten — werden in PDF-Abrechnungen verwendet.
         </p>
       </div>
+      <BackupCard status={backup} health={backupHealth(backup, new Date())} />
       <SettingsForm
         defaultValues={{
           landlordName: settings.landlordName ?? "",
