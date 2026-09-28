@@ -17,6 +17,8 @@ describe("suggestYear", () => {
 describe("suggestTag", () => {
   it("Grundsteuer vor Steuer", () => {
     expect(suggestTag("2025_Grundsteuer_Erlensee.pdf")).toBe("Grundsteuer & Gebühren");
+    expect(suggestTag("2025_Winterreifen.pdf")).toBe("Fahrzeug & Fahrten");
+    expect(suggestTag("Amazon_2026-01-09_Abdeckstreifen.pdf")).not.toBe("Fahrzeug & Fahrten");
   });
   it.each([
     ["2025_Zinsnachweise.pdf", "Darlehen & Zinsen"],

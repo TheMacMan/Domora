@@ -17,7 +17,8 @@ const RULES: Array<[RegExp, DocumentTag]> = [
   [/grundsteuer|grundbesitzabgabe/i, "Grundsteuer & Gebühren"],
   [/kaufvertrag|grundbuch|teilungserkl|notar|energieausweis/i, "Kauf & Grundbuch"],
   [/zins|darlehen|kredit|tilgung|bauspar/i, "Darlehen & Zinsen"],
-  [/fahrten|fahrtkosten|leasing|kfz|reifen|tankbeleg/i, "Fahrzeug & Fahrten"],
+  // „reifen" nicht in „Abdeckstreifen"/„Klebestreifen"
+  [/fahrten|fahrtkosten|leasing|kfz|(?<!st)reifen|tankbeleg/i, "Fahrzeug & Fahrten"],
   [/immoscout|immowelt|kleinanzeigen|inserat|vermietenplus|roomsketcher|hausverwalt/i, "Vermietung & Verwaltung"],
   [/nebenkostenabrechnung|nk-abrechnung|stromabrechnung.*mieter|strom-\d{4}/i, "Abrechnungen an Mieter"],
   [/este|steuer(?!n?ummer)|anlage[ _-]?v|bescheid.*finanzamt|elster/i, "Steuer"],
