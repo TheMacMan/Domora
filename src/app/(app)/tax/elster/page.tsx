@@ -40,7 +40,7 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
             {entry.items.length} Einzelposten anzeigen
             {(() => {
-              const missing = entry.items!.filter((i) => i.receipts && i.receipts.length === 0 && i.cents !== 0).length;
+              const missing = entry.items!.filter((i) => !i.tripLog && i.receipts && i.receipts.length === 0 && i.cents !== 0).length;
               return missing > 0 ? <span className="ml-1 text-amber-600">· {missing} ohne Beleg</span> : null;
             })()}
           </summary>
@@ -55,7 +55,11 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
                     <Link href={`/expenses/${i.expenseId}/edit`} className="hover:underline">{i.label}</Link>
                   ) : i.label}
                 </span>
-                {i.receipts && (
+                {i.tripLog ? (
+                  <Link href={`/expenses/trips?year=${i.date?.slice(0, 4) ?? ""}`} className="shrink-0 text-[11px] text-muted-foreground hover:underline" title="Nachweis: Fahrtenliste">
+                    Fahrtenliste
+                  </Link>
+                ) : i.receipts && (
                   i.receipts.length > 0 ? (
                     <ReceiptPreviewButton docs={i.receipts} />
                   ) : (

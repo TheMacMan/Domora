@@ -42,7 +42,9 @@ export async function GET(req: NextRequest) {
         date: i.date,
         label: i.label,
         cents: i.cents,
-        beleg: i.receipts && i.receipts.length > 0 ? i.receipts.map((r) => r.title ?? r.filename).join(", ") : null,
+        beleg: i.tripLog
+          ? `Fahrtenliste ${year}`
+          : i.receipts && i.receipts.length > 0 ? i.receipts.map((r) => r.title ?? r.filename).join(", ") : null,
       })),
     ),
   );

@@ -12,7 +12,6 @@ import { writeAuditLog } from "@/lib/audit";
 import { todayLocal } from "@/lib/dates";
 import { toCents } from "@/lib/money";
 import { frequentDestinations, tripAmountCents } from "@/lib/vehicle-rate";
-import { receiptStatus } from "@/lib/expense-receipts";
 import {
   odometerSchema,
   tripRouteSchema,
@@ -420,14 +419,11 @@ export async function getTripsPageAction(year: number) {
   const rateByVehicle = new Map(cards.map((c) => [c.vehicle.id, c.result]));
   const list = tripRows.map((t) => {
     const r = rateByVehicle.get(t.vehicleId);
-    const keys = ctx.vehicleKeysByExpense.get(t.expenseId ?? "") ?? [];
-    const receiptCount = keys.reduce((s, k) => s + (ctx.byTarget.get(k)?.length ?? 0), 0) + (ctx.byTarget.get(`expense:${t.expenseId}`)?.length ?? 0);
     const cents = r ? tripAmountCents(t.km, r) ?? 0 : 0;
     return {
       id: t.id, date: t.date, route: t.route, km: t.km, purpose: t.purpose, cents,
       property: `${t.property.street}, ${t.property.city}`, propertyId: t.propertyId,
       vehicle: t.vehicle.name, expenseId: t.expenseId,
-      receipt: receiptStatus({ amountCents: cents, receiptCount }),
     };
   });
 

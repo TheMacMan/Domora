@@ -62,6 +62,9 @@ describe("Belegpflicht", () => {
     expect(receiptStatus({ amountCents: 100, receiptCount: 2 })).toBe("linked");
     expect(receiptStatus({ amountCents: 100, receiptCount: 0 })).toBe("missing");
     expect(receiptStatus({ amountCents: 0, receiptCount: 0 })).toBe("not_needed");
+    // Fahrtkosten: Nachweis ist die Fahrtenliste
+    expect(receiptStatus({ amountCents: 7_333, receiptCount: 0, tripId: "t1" })).toBe("trip_log");
+    expect(needsReceipt({ amountCents: 7_333, tripId: "t1" })).toBe(false);
   });
 
   it("zählt fehlende Belege je Jahr ab der Bagatellgrenze von 20 €", () => {
@@ -71,6 +74,7 @@ describe("Belegpflicht", () => {
       { date: "2025-04-02", amountCents: -8_335, receiptCount: 0 }, // Erstattung, Betrag zählt
       { date: "2025-05-01", amountCents: 9_999, receiptCount: 1 },
       { date: "2026-01-01", amountCents: 5_000, receiptCount: 0 },
+      { date: "2025-11-15", amountCents: 7_333, receiptCount: 0, tripId: "t1" }, // Fahrt zählt nicht
     ]);
     expect(m.get(2025)).toEqual({ count: 2, cents: 2_500 - 8_335 });
     expect(m.get(2026)).toEqual({ count: 1, cents: 5_000 });

@@ -81,7 +81,7 @@ async function loadTaxYearData(propertyId: string, year: number) {
     .filter((e) => e.date.startsWith(yearStr))
     .flatMap((e) => {
       if (e.propertyId === propertyId)
-        return [{ id: e.id, category: e.category, amountCents: e.amountCents, date: e.date, description: e.description, receipts: receiptsOf(e) }];
+        return [{ id: e.id, category: e.category, amountCents: e.amountCents, date: e.date, description: e.description, receipts: receiptsOf(e), tripLog: !!e.tripId }];
       if (e.propertyId === null)
         return [{
           id: e.id,
@@ -90,6 +90,7 @@ async function loadTaxYearData(propertyId: string, year: number) {
           date: e.date,
           description: `${e.description ?? "(ohne Beschreibung)"} (anteilig 1/${propertyCount})`,
           receipts: receiptsOf(e),
+          tripLog: !!e.tripId,
         }];
       return [];
     });
@@ -216,6 +217,7 @@ export async function getElsterAnlageVAction(propertyId: string, year: number): 
       date: e.date,
       description: e.description,
       receipts: e.receipts,
+      tripLog: e.tripLog,
     })),
   });
 

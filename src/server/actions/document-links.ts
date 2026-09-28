@@ -27,7 +27,8 @@ async function loadTarget(targetType: DocumentLinkTarget, targetId: string) {
   if (!ID_RE.test(targetId)) return null;
   if (targetType === "expense") {
     const e = await db.query.expenses.findFirst({ where: and(eq(expenses.id, targetId), isNull(expenses.deletedAt)) });
-    return e && { propertyId: e.propertyId, date: e.date, description: e.description, category: e.category, scheduleId: e.scheduleId, wegAbrechnungId: e.wegAbrechnungId, amountCents: e.amountCents };
+    // Fahrtkosten: Nachweis ist die Fahrtenliste → kein eigener Beleg nötig
+    return e && { propertyId: e.propertyId, date: e.date, description: e.description, category: e.category, scheduleId: e.scheduleId, wegAbrechnungId: e.wegAbrechnungId, amountCents: e.tripId ? 0 : e.amountCents };
   }
   if (targetType === "expense_schedule") {
     const s = await db.query.expenseSchedules.findFirst({ where: and(eq(expenseSchedules.id, targetId), isNull(expenseSchedules.deletedAt)) });

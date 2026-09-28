@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate, formatMonthShort } from "@/lib/dates";
 import { CATEGORY_LABELS, isOperatingCost } from "@/lib/expense";
 import { ExpenseFilters } from "@/components/expense/expense-filters";
-import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, AlertTriangle, Car } from "lucide-react";
+import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, AlertTriangle, Car, ListChecks } from "lucide-react";
 import { receiptStatus } from "@/lib/expense-receipts";
 import { ReceiptPreviewButton } from "@/components/expense/receipt-preview-button";
 
@@ -39,6 +39,18 @@ function ReceiptBadge({ e }: { e: Expense }) {
   const status = receiptStatus(e);
   if (status === "linked") {
     return <ReceiptPreviewButton docs={e.receipts} />;
+  }
+  if (status === "trip_log") {
+    return (
+      <Link
+        href={`/expenses/trips?year=${e.date.slice(0, 4)}`}
+        className="inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+        title="Nachweis: Fahrtenliste"
+      >
+        <ListChecks className="size-3" />
+        Fahrtenliste
+      </Link>
+    );
   }
   if (status === "missing") {
     return (
@@ -96,7 +108,11 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       } else if (e.propertyId !== filterProperty) return false;
     }
     if (filterCategory && e.category !== filterCategory) return false;
-    if (filterReceipt && receiptStatus(e) !== filterReceipt) return false;
+    if (filterReceipt) {
+      const st = receiptStatus(e);
+      // „Mit Beleg" umfasst auch Fahrtkosten (Nachweis: Fahrtenliste)
+      if (filterReceipt === "linked" ? st !== "linked" && st !== "trip_log" : st !== filterReceipt) return false;
+    }
     if (filterSearch) {
       const hay = `${e.description ?? ""} ${CATEGORY_LABELS[e.category] ?? ""} ${e.notes ?? ""}`.toLowerCase();
       if (!hay.includes(filterSearch)) return false;

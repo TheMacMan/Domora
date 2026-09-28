@@ -13,6 +13,7 @@ export type ElsterItem = {
   cents: number;
   expenseId?: string;          // Ausgabe hinter dem Posten (für Belegverweis und Bearbeiten)
   receipts?: ElsterReceipt[];  // verknüpfte Belege; leer = Beleg fehlt
+  tripLog?: boolean;           // Fahrtkosten: Nachweis ist die Fahrtenliste
 };
 
 export type ElsterEntry = {
@@ -66,6 +67,7 @@ export type ElsterInput = {
     description: string | null;
     id?: string;
     receipts?: ElsterReceipt[];
+    tripLog?: boolean;
   }>;
 };
 
@@ -124,6 +126,7 @@ function toItems(rows: ElsterInput["expenses"]): ElsterItem[] {
       cents: r.cents,
       ...(r.id ? { expenseId: r.id } : {}),
       ...(r.receipts ? { receipts: r.receipts } : {}),
+      ...(r.tripLog ? { tripLog: true } : {}),
     }));
 }
 

@@ -46,15 +46,18 @@ export function groupLinksByTarget(links: ReceiptLink[]): Map<string, ReceiptLin
   return m;
 }
 
-export type ReceiptStatus = "linked" | "missing" | "not_needed";
+// "trip_log": Fahrtkosten — Nachweis ist die Fahrt selbst (Fahrtenliste). Belegpflichtig sind
+// dort nur die Grundlagen des km-Satzes (Fahrzeugkosten, km-Stände), die getrennt geprüft werden.
+export type ReceiptStatus = "linked" | "missing" | "not_needed" | "trip_log";
 
-// Nur Nullbuchungen (z. B. nicht gezahlte Rate) brauchen keinen Beleg. Abo- und
-// WEG-Buchungen brauchen einen — er kann am Abo bzw. an der WEG-Abrechnung hängen.
-export function needsReceipt(e: { amountCents: number }): boolean {
-  return e.amountCents !== 0;
+// Nullbuchungen (z. B. nicht gezahlte Rate) und Fahrtkosten brauchen keinen eigenen Beleg.
+// Abo- und WEG-Buchungen brauchen einen — er kann am Abo bzw. an der WEG-Abrechnung hängen.
+export function needsReceipt(e: { amountCents: number; tripId?: string | null }): boolean {
+  return e.amountCents !== 0 && !e.tripId;
 }
 
-export function receiptStatus(e: { amountCents: number; receiptCount: number }): ReceiptStatus {
+export function receiptStatus(e: { amountCents: number; receiptCount: number; tripId?: string | null }): ReceiptStatus {
+  if (e.tripId) return "trip_log";
   if (e.receiptCount > 0) return "linked";
   return needsReceipt(e) ? "missing" : "not_needed";
 }
@@ -64,7 +67,7 @@ export const RECEIPT_TASK_MIN_CENTS = 2_000;
 
 // Ausgaben ohne Beleg je Buchungsjahr — ab der Bagatellgrenze
 export function missingReceiptsByYear(
-  list: Array<{ date: string; amountCents: number; receiptCount: number }>,
+  list: Array<{ date: string; amountCents: number; receiptCount: number; tripId?: string | null }>,
   minCents = RECEIPT_TASK_MIN_CENTS,
 ): Map<number, { count: number; cents: number }> {
   const out = new Map<number, { count: number; cents: number }>();

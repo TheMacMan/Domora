@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Car, Copy, Paperclip, Pencil, Plus } from "lucide-react";
+import { AlertTriangle, Car, Copy, Pencil, Plus } from "lucide-react";
 import { ExpenseTabs } from "@/components/expense/expense-tabs";
 import { Button } from "@/components/ui/button";
 import { VehicleYearControls } from "@/components/trips/vehicle-year-controls";
@@ -132,11 +132,6 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
                   <p className="truncate text-xs text-muted-foreground">{t.property} · {t.route} · {t.vehicle}</p>
                 </div>
                 <span className="shrink-0 tabular-nums text-muted-foreground">{formatKm(t.km)} km</span>
-                {t.receipt === "linked" ? (
-                  <Paperclip className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-label="Beleg vorhanden" />
-                ) : (
-                  <span className="shrink-0 text-[11px] text-amber-600">Beleg fehlt</span>
-                )}
                 <span className="w-20 shrink-0 text-right font-medium tabular-nums">{formatMoney(t.cents)}</span>
                 <div className="flex shrink-0">
                   <Button asChild variant="ghost" size="iconSm" title="Wiederholen">
