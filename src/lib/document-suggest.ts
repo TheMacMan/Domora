@@ -15,19 +15,21 @@ export function suggestYear(filename: string): number | null {
 const RULES: Array<[RegExp, DocumentTag]> = [
   // Grundsteuer vor „Steuer", sonst landen Grundsteuerbescheide unter Steuer
   [/grundsteuer|grundbesitzabgabe/i, "Grundsteuer & Gebühren"],
+  [/kaufvertrag|grundbuch|teilungserkl|notar|energieausweis/i, "Kauf & Grundbuch"],
   [/zins|darlehen|kredit|tilgung|bauspar/i, "Darlehen & Zinsen"],
+  [/fahrten|fahrtkosten|leasing|kfz|reifen|tankbeleg/i, "Fahrzeug & Fahrten"],
+  [/immoscout|immowelt|kleinanzeigen|inserat|vermietenplus|roomsketcher|hausverwalt/i, "Vermietung & Verwaltung"],
+  [/nebenkostenabrechnung|nk-abrechnung|stromabrechnung.*mieter|strom-\d{4}/i, "Abrechnungen an Mieter"],
   [/este|steuer(?!n?ummer)|anlage[ _-]?v|bescheid.*finanzamt|elster/i, "Steuer"],
   [/versicherung|police/i, "Versicherung"],
   [/abwasser|frischwasser|wasser|niederschlag/i, "Wasser & Abwasser"],
   [/strom|gas|energie|heiz|tibber|maingau|evd|eva[ _-]/i, "Energie"],
   [/grundsteuer|müll|muell|gebühr|gebuehr|schornstein/i, "Grundsteuer & Gebühren"],
-  [/renovier|handwerk|sanierung|rechnung.*(maler|fliesen|elektro|sanitär)/i, "Handwerker & Renovierung"],
+  [/renovier|handwerk|sanierung|reparatur|rechnung.*(maler|fliesen|elektro|sanitär)|bauhaus|hagebau|toom|obi/i, "Instandhaltung & Renovierung"],
   [/weg|hausgeld|eigentümerversammlung|jahresabrechnung|betriebskostenabrechnung/i, "WEG"],
   [/mietvertrag/i, "Mietvertrag"],
   [/übergabe|uebergabe/i, "Übergabeprotokoll"],
-  [/perso|ausweis/i, "Personalausweis"],
-  [/entgelt|gehalt|lohn|verdienst/i, "Verdienstnachweis"],
-  [/schufa/i, "SCHUFA"],
+  [/perso|ausweis|entgelt|gehalt|lohn|verdienst|schufa|selbstauskunft/i, "Bewerbung & Bonität"],
 ];
 
 export function suggestTag(filename: string): DocumentTag | null {

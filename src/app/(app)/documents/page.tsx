@@ -5,7 +5,7 @@ import { getAllDocumentsAction } from "@/server/actions/documents";
 import { Badge } from "@/components/ui/badge";
 import { Private } from "@/components/private";
 import { formatDateObj } from "@/lib/dates";
-import { GENERAL_ENTITY_ID, SENSITIVE_TENANT_TAGS } from "@/lib/validators/document";
+import { GENERAL_ENTITY_ID, NON_RECEIPT_TAGS, SENSITIVE_TENANT_TAGS } from "@/lib/validators/document";
 import { DocumentUploadForm } from "@/components/document/document-upload-form";
 import { DocumentFilters } from "@/components/document/document-filters";
 import { DocumentEditButton } from "@/components/document/document-edit-button";
@@ -26,9 +26,8 @@ function DocIcon({ mime }: { mime: string }) {
 }
 
 // Dokumente, die als Beleg einer Buchung in Frage kommen (keine Mieter-/Vertragsunterlagen)
-const NON_RECEIPT_TAGS = new Set(["Mietvertrag", "Übergabeprotokoll", "Personalausweis", "Verdienstnachweis", "SCHUFA", "Korrespondenz"]);
 function isReceiptDoc(d: { entityType: string; tag: string }) {
-  return (d.entityType === "property" || d.entityType === "general") && !NON_RECEIPT_TAGS.has(d.tag);
+  return (d.entityType === "property" || d.entityType === "general") && !NON_RECEIPT_TAGS.includes(d.tag);
 }
 
 type SearchParams = { q?: string; where?: string; year?: string; tag?: string; beleg?: string };

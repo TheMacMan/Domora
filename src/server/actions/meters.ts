@@ -208,7 +208,7 @@ export async function createSettlementAction(data: SettlementInput): Promise<Act
   const title = `${parsed.data.direction === "refund" ? "Stromerstattung" : "Stromabrechnung"} ${number} – ${lease.unit.name}`;
   await db.insert(documents).values({
     id: docId, filename: `${number}.pdf`, storedName: `${docId}.pdf`, mimeType: "application/pdf", sizeBytes: buffer.length,
-    entityType: "lease", entityId: lease.id, tag: "Energie", year: +parsed.data.periodEnd.slice(0, 4), title,
+    entityType: "lease", entityId: lease.id, tag: "Abrechnungen an Mieter", year: +parsed.data.periodEnd.slice(0, 4), title,
   });
 
   const id = createId();

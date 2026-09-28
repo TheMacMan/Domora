@@ -1,36 +1,41 @@
 import { z } from "zod";
 
-// Kategorien — gruppiert nach Themen. Ältere Werte (z. B. „Beleg“) bleiben gültig.
+// Kategorien nach Thema (nicht nach Dokumentart): ob ein Dokument Beleg einer Buchung ist,
+// zeigt die Verknüpfung (document_links), nicht die Kategorie.
 export const DOCUMENT_TAG_GROUPS = [
-  { label: "Steuer & Finanzen", tags: ["Steuer", "Darlehen & Zinsen", "Versicherung"] },
-  { label: "Objekt & Nebenkosten", tags: ["Wasser & Abwasser", "Energie", "Grundsteuer & Gebühren", "Handwerker & Renovierung", "WEG"] },
-  { label: "Mieter", tags: ["Mietvertrag", "Übergabeprotokoll", "Personalausweis", "Verdienstnachweis", "SCHUFA"] },
-  { label: "Allgemein", tags: ["Korrespondenz", "Beleg", "Sonstiges"] },
+  { label: "Objekt", tags: ["Kauf & Grundbuch", "Grundsteuer & Gebühren", "Wasser & Abwasser", "Energie", "Versicherung", "WEG", "Instandhaltung & Renovierung"] },
+  { label: "Finanzen & Steuer", tags: ["Darlehen & Zinsen", "Steuer", "Vermietung & Verwaltung", "Fahrzeug & Fahrten"] },
+  { label: "Mieter", tags: ["Mietvertrag", "Übergabeprotokoll", "Abrechnungen an Mieter", "Bewerbung & Bonität"] },
+  { label: "Allgemein", tags: ["Korrespondenz", "Sonstiges"] },
 ] as const;
 
 export const DOCUMENT_TAGS = [
-  "Steuer",
-  "Darlehen & Zinsen",
-  "Versicherung",
+  "Kauf & Grundbuch",
+  "Grundsteuer & Gebühren",
   "Wasser & Abwasser",
   "Energie",
-  "Grundsteuer & Gebühren",
-  "Handwerker & Renovierung",
+  "Versicherung",
   "WEG",
+  "Instandhaltung & Renovierung",
+  "Darlehen & Zinsen",
+  "Steuer",
+  "Vermietung & Verwaltung",
+  "Fahrzeug & Fahrten",
   "Mietvertrag",
   "Übergabeprotokoll",
-  "Personalausweis",
-  "Verdienstnachweis",
-  "SCHUFA",
+  "Abrechnungen an Mieter",
+  "Bewerbung & Bonität",
   "Korrespondenz",
-  "Beleg",
   "Sonstiges",
 ] as const;
 
 export type DocumentTag = (typeof DOCUMENT_TAGS)[number];
 
 // Personenbezogene Mieterunterlagen: nur so lange aufbewahren, wie nötig (DSGVO)
-export const SENSITIVE_TENANT_TAGS: readonly string[] = ["Personalausweis", "Verdienstnachweis", "SCHUFA"];
+export const SENSITIVE_TENANT_TAGS: readonly string[] = ["Bewerbung & Bonität"];
+
+// Mieterunterlagen — kommen nicht als Beleg einer Buchung in Frage
+export const NON_RECEIPT_TAGS: readonly string[] = ["Mietvertrag", "Übergabeprotokoll", "Abrechnungen an Mieter", "Bewerbung & Bonität", "Korrespondenz"];
 
 // "general" = objektübergreifend (z. B. Steuererklärung, Bescheide) — entityId ist dann "general"
 export const ENTITY_TYPES = ["tenant", "property", "lease", "general"] as const;

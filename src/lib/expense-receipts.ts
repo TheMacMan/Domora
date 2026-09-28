@@ -89,13 +89,14 @@ export function missingReceiptsByYear(
 
 // Dokument-Kategorie für einen neuen Beleg aus der Ausgabenkategorie vorschlagen
 export function tagForExpenseCategory(category: string): string {
-  if (category === "maintenance" || category === "capital_expense") return "Handwerker & Renovierung";
+  if (category === "maintenance" || category === "capital_expense") return "Instandhaltung & Renovierung";
+  if (category === "administration" || category === "other") return "Vermietung & Verwaltung";
   if (category === "bk_grundsteuer" || category === "bk_strasse_muell") return "Grundsteuer & Gebühren";
   if (category === "bk_wasser" || category === "bk_abwasser") return "Wasser & Abwasser";
   if (category === "bk_heizung" || category === "bk_warmwasser" || category === "bk_beleuchtung") return "Energie";
   if (category === "bk_versicherung" || category === "insurance_owner") return "Versicherung";
   if (category.startsWith("weg_")) return "WEG";
-  return "Beleg";
+  return "Sonstiges";
 }
 
 export type CandidateDoc = {
@@ -151,7 +152,7 @@ export function rankReceiptCandidates(
     }
     const docWords = words(`${d.title ?? ""} ${d.filename}`);
     for (const w of targetWords) if (docWords.has(w)) score += 3;
-    if (target.tag && target.tag !== "Beleg" && d.tag === target.tag) score += 1;
+    if (target.tag && target.tag !== "Sonstiges" && d.tag === target.tag) score += 1;
     if (d.entityType === "property" && d.entityId === target.propertyId) score += 1;
     if (d.year === targetYear) score += 1;
     return { d, score };

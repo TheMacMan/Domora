@@ -125,7 +125,7 @@ export async function getReceiptPanelAction(targetType: DocumentLinkTarget, targ
   const linkedIds = new Set([...own, ...inherited].map((x) => x.doc.id));
   // Mieter-/Vertragsunterlagen sind keine Belege für Ausgaben
   const pool = allDocs.filter((d) => !linkedIds.has(d.id) && (d.entityType === "property" || d.entityType === "general"));
-  const tag = target.category === "vehicle" ? "Beleg" : tagForExpenseCategory(target.category);
+  const tag = target.category === "vehicle" ? "Fahrzeug & Fahrten" : tagForExpenseCategory(target.category);
   const suggestions = rankReceiptCandidates({ ...target, tag }, pool);
   const suggestionIds = new Set(suggestions.map((d) => d.id));
   const year = parseInt(target.date.slice(0, 4), 10);

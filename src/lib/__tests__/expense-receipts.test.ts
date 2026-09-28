@@ -18,7 +18,7 @@ const link = (targetType: ReceiptLink["targetType"], targetId: string, docId: st
 });
 
 const doc = (over: Partial<CandidateDoc>): CandidateDoc => ({
-  id: "d", filename: "x.pdf", title: null, tag: "Beleg", year: 2025, entityType: "property", entityId: "p1",
+  id: "d", filename: "x.pdf", title: null, tag: "Sonstiges", year: 2025, entityType: "property", entityId: "p1",
   createdAt: new Date("2026-01-01"), ...over,
 });
 
@@ -86,10 +86,12 @@ describe("Belegpflicht", () => {
 
 describe("Belegvorschläge", () => {
   it("Kategorie aus der Ausgabenkategorie", () => {
-    expect(tagForExpenseCategory("maintenance")).toBe("Handwerker & Renovierung");
+    expect(tagForExpenseCategory("maintenance")).toBe("Instandhaltung & Renovierung");
     expect(tagForExpenseCategory("bk_grundsteuer")).toBe("Grundsteuer & Gebühren");
     expect(tagForExpenseCategory("weg_hausgeld")).toBe("WEG");
-    expect(tagForExpenseCategory("administration")).toBe("Beleg");
+    expect(tagForExpenseCategory("administration")).toBe("Vermietung & Verwaltung");
+    expect(tagForExpenseCategory("insurance_owner")).toBe("Versicherung");
+    expect(tagForExpenseCategory("interest")).toBe("Sonstiges");
   });
 
   it("liest Datum aus Dateinamen", () => {

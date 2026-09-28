@@ -295,7 +295,7 @@ export async function saveTripLogReceiptAction(vehicleId: string, year: number):
   const filename = `Fahrtenliste_${year}_${data.vehicle.name.replace(/[^\p{L}\p{N}]+/gu, "_")}.pdf`;
   await db.insert(documents).values({
     id, filename, storedName, mimeType: "application/pdf", sizeBytes: buffer.length,
-    entityType: "general", entityId: "general", tag: "Beleg", year,
+    entityType: "general", entityId: "general", tag: "Fahrzeug & Fahrten", year,
     title: `Fahrtenliste ${year} – ${data.vehicle.name}${data.result.provisional ? " (vorläufig)" : ""}`,
     notes: `${TRIP_LOG_MARKER}:${vy.id} · erstellt ${todayLocal()}`,
   });
