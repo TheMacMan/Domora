@@ -84,10 +84,10 @@ export async function getExpensesAction(filters?: { propertyId?: string; year?: 
   const rows = await db.query.expenses.findMany({
     where: isNull(expenses.deletedAt),
     orderBy: [desc(expenses.date)],
-    with: { property: true },
+    with: { property: true, receiptLinks: { columns: { documentId: true } } },
   });
 
-  let result = rows;
+  let result = rows.map(({ receiptLinks, ...e }) => ({ ...e, receiptCount: receiptLinks.length }));
 
   if (filters?.propertyId) {
     result = result.filter(

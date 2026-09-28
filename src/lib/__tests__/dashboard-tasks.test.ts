@@ -98,4 +98,18 @@ describe("buildDashboardTasks", () => {
     });
     expect(t.map((x) => x.severity)).toEqual(["urgent", "warning", "info"]);
   });
+  it("Ausgaben ohne Beleg: Vorjahr als Warnung, laufendes Jahr als Hinweis", () => {
+    const t = buildDashboardTasks({
+      ...base,
+      missingReceipts: [
+        { year: 2025, count: 3, cents: 12_345 },
+        { year: 2026, count: 1, cents: 500 },
+        { year: 2024, count: 0, cents: 0 },
+      ],
+    });
+    expect(t.map((x) => [x.id, x.severity])).toEqual([["receipts-2025", "warning"], ["receipts-2026", "info"]]);
+    expect(t[0]!.title).toBe("3 Ausgaben 2025 ohne Beleg");
+    expect(t[0]!.href).toBe("/expenses?year=2025&beleg=missing");
+    expect(t[1]!.title).toBe("1 Ausgabe 2026 ohne Beleg");
+  });
 });

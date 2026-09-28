@@ -17,6 +17,7 @@ export function ExpenseFilters({
   currentCategory,
   currentSearch,
   currentSort,
+  currentReceipt = "",
 }: {
   years: number[];
   properties: Property[];
@@ -25,6 +26,7 @@ export function ExpenseFilters({
   currentCategory: string;
   currentSearch: string;
   currentSort: "date" | "period";
+  currentReceipt?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -105,6 +107,17 @@ export function ExpenseFilters({
               ))}
             </optgroup>
           ))}
+        </select>
+
+        <select
+          value={currentReceipt || "all"}
+          onChange={(e) => setParam("beleg", e.target.value)}
+          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+          aria-label="Belege"
+        >
+          <option value="all">Alle Belege</option>
+          <option value="missing">Ohne Beleg</option>
+          <option value="linked">Mit Beleg</option>
         </select>
 
         <div className="relative flex-1 min-w-[150px] max-w-[280px]">

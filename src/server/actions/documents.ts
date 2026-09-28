@@ -6,7 +6,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { eq, isNull, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { documents, leases, properties, tenants } from "@/db/schema";
+import { documents, expenseDocuments, expenses, leases, properties, tenants } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import {
@@ -98,12 +98,25 @@ export async function uploadDocumentAction(
     title: metaParsed.data.title ?? null,
   });
 
+  // Optional direkt als Beleg an eine Ausgabe hängen (Upload aus „Ausgabe bearbeiten")
+  const expenseId = formData.get("expenseId");
+  let linkedExpenseId: string | null = null;
+  if (typeof expenseId === "string" && /^[a-z0-9]{10,40}$/.test(expenseId)) {
+    const exp = await db.query.expenses.findFirst({ where: and(eq(expenses.id, expenseId), isNull(expenses.deletedAt)) });
+    if (exp) {
+      await db.insert(expenseDocuments).values({ expenseId, documentId: id }).onConflictDoNothing();
+      linkedExpenseId = expenseId;
+      revalidatePath("/expenses");
+      revalidatePath(`/expenses/${expenseId}/edit`);
+    }
+  }
+
   await writeAuditLog({
     userId: user.id,
     action: "document.upload",
     entity: "document",
     entityId: id,
-    after: { filename: file.name, entityType, entityId, tag: metaParsed.data.tag, year: metaParsed.data.year ?? null },
+    after: { filename: file.name, entityType, entityId, tag: metaParsed.data.tag, year: metaParsed.data.year ?? null, expenseId: linkedExpenseId },
   });
 
   revalidateDocumentViews(entityType, entityId);
@@ -201,7 +214,11 @@ export async function getDocumentsAction(entityType: EntityType, entityId: strin
 export async function getAllDocumentsAction() {
   await requireUser();
   const [docs, tenantRows, propertyRows, leaseRows] = await Promise.all([
-    db.query.documents.findMany({ where: isNull(documents.deletedAt), orderBy: (d, { desc }) => [desc(d.createdAt)] }),
+    db.query.documents.findMany({
+      where: isNull(documents.deletedAt),
+      orderBy: (d, { desc }) => [desc(d.createdAt)],
+      with: { expenseLinks: { with: { expense: true } } },
+    }),
     db.query.tenants.findMany(),
     db.query.properties.findMany(),
     db.query.leases.findMany({ with: { unit: true, leaseTenants: { with: { tenant: true } } } }),
@@ -214,8 +231,13 @@ export async function getAllDocumentsAction() {
     label.set(`lease:${l.id}`, `Vertrag ${l.unit.name}${names ? ` · ${names}` : ""}`);
   }
   label.set(`general:${GENERAL_ENTITY_ID}`, "Allgemein");
-  const items = docs.map((d) => ({
+  const items = docs.map(({ expenseLinks, ...d }) => ({
     ...d,
+    // Ausgaben, die dieses Dokument belegt
+    expenses: expenseLinks
+      .map((l) => l.expense)
+      .filter((e) => e.deletedAt == null)
+      .map((e) => ({ id: e.id, date: e.date, amountCents: e.amountCents, description: e.description })),
     entityLabel: label.get(`${d.entityType}:${d.entityId}`) ?? "(unbekannt)",
     entityHref: d.entityType === "general" ? "/documents" : `${ENTITY_PATH[d.entityType as EntityType] ?? ""}/${d.entityId}`,
   }));

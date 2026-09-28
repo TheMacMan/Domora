@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -310,6 +310,20 @@ export const documents = sqliteTable("documents", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
+// Belegverknüpfung: welche Dokumente belegen welche Ausgabe (n:m — ein Scan kann mehrere
+// Bons enthalten, eine Rechnung kann aus Anzahlung und Rest bestehen)
+export const expenseDocuments = sqliteTable(
+  "expense_documents",
+  {
+    expenseId: text("expense_id").notNull().references(() => expenses.id),
+    documentId: text("document_id").notNull().references(() => documents.id),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [primaryKey({ columns: [t.expenseId, t.documentId] })],
+);
+
 export const LOAN_TYPES = ["annuity", "interest_only", "bauspar"] as const;
 export type LoanType = (typeof LOAN_TYPES)[number];
 
@@ -521,9 +535,19 @@ export const loanInterestYearsRelations = relations(loanInterestYears, ({ one })
   loan: one(loans, { fields: [loanInterestYears.loanId], references: [loans.id] }),
 }));
 
-export const expensesRelations = relations(expenses, ({ one }) => ({
+export const expensesRelations = relations(expenses, ({ one, many }) => ({
   property: one(properties, { fields: [expenses.propertyId], references: [properties.id] }),
   schedule: one(expenseSchedules, { fields: [expenses.scheduleId], references: [expenseSchedules.id] }),
+  receiptLinks: many(expenseDocuments),
+}));
+
+export const documentsRelations = relations(documents, ({ many }) => ({
+  expenseLinks: many(expenseDocuments),
+}));
+
+export const expenseDocumentsRelations = relations(expenseDocuments, ({ one }) => ({
+  expense: one(expenses, { fields: [expenseDocuments.expenseId], references: [expenses.id] }),
+  document: one(documents, { fields: [expenseDocuments.documentId], references: [documents.id] }),
 }));
 
 export const unitsRelations = relations(units, ({ one, many }) => ({

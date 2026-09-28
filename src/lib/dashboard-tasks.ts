@@ -23,6 +23,8 @@ export type TaskInput = {
   endingLeases: Array<{ leaseId: string; label: string; endDate: string }>;
   // Objekte mit NK-Vorauszahlungen, für die die Abrechnung eines Jahres fehlt
   missingNkStatements: Array<{ propertyId: string; label: string; year: number }>;
+  // Ausgaben ohne verknüpften Beleg je Buchungsjahr
+  missingReceipts?: Array<{ year: number; count: number; cents: number }>;
 };
 
 const SEVERITY_ORDER: Record<TaskSeverity, number> = { urgent: 0, warning: 1, info: 2 };
@@ -102,6 +104,20 @@ export function buildDashboardTasks(input: TaskInput): DashboardTask[] {
         ? `${n.label} · Nachforderungen sind ausgeschlossen, Guthaben der Mieter bleiben erstattungspflichtig`
         : `${n.label} · Frist ${fmtDate(deadline)} (noch ${days} Tage)`,
       href: "/service-charges",
+    });
+  }
+
+  // Ausgaben ohne Beleg — Vorjahr ist für die Steuererklärung relevant, laufendes Jahr nur Hinweis
+  const currentYear = parseInt(input.today.slice(0, 4), 10);
+  for (const r of input.missingReceipts ?? []) {
+    if (r.count <= 0) continue;
+    tasks.push({
+      id: `receipts-${r.year}`,
+      severity: r.year < currentYear ? "warning" : "info",
+      title: `${r.count} ${r.count === 1 ? "Ausgabe" : "Ausgaben"} ${r.year} ohne Beleg`,
+      detail: "Rechnung oder Bon hochladen und verknüpfen — ohne Beleg nicht in die Steuererklärung übernehmen",
+      href: `/expenses?year=${r.year}&beleg=missing`,
+      amountCents: r.cents,
     });
   }
 

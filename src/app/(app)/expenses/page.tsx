@@ -6,7 +6,8 @@ import { formatMoney } from "@/lib/money";
 import { formatDate, formatMonthShort } from "@/lib/dates";
 import { CATEGORY_LABELS, isOperatingCost } from "@/lib/expense";
 import { ExpenseFilters } from "@/components/expense/expense-filters";
-import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat } from "lucide-react";
+import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, Paperclip, AlertTriangle } from "lucide-react";
+import { receiptStatus } from "@/lib/expense-receipts";
 
 export const metadata = { title: "Ausgaben – Domora" };
 
@@ -16,6 +17,7 @@ type Search = {
   category?: string;
   q?: string;
   sort?: string;
+  beleg?: string; // "missing" | "linked"
 };
 
 type Expense = Awaited<ReturnType<typeof getExpensesAction>>[number];
@@ -32,6 +34,27 @@ function yearOf(e: Expense, mode: "date" | "period"): number {
   return parseInt(e.date.slice(0, 4), 10);
 }
 
+function ReceiptBadge({ e }: { e: Expense }) {
+  const status = receiptStatus(e);
+  if (status === "linked") {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground" title={`${e.receiptCount} Beleg(e) verknüpft`}>
+        <Paperclip className="size-3" />
+        {e.receiptCount > 1 && e.receiptCount}
+      </span>
+    );
+  }
+  if (status === "missing") {
+    return (
+      <span className="inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] text-amber-600" title="Kein Beleg verknüpft">
+        <AlertTriangle className="size-3" />
+        Beleg fehlt
+      </span>
+    );
+  }
+  return null;
+}
+
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const filterYear = sp.year ?? "";
@@ -39,6 +62,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const filterCategory = sp.category ?? "";
   const filterSearch = (sp.q ?? "").toLowerCase().trim();
   const sortMode: "date" | "period" = sp.sort === "period" ? "period" : "date";
+  const filterReceipt = sp.beleg === "missing" || sp.beleg === "linked" ? sp.beleg : "";
 
   const all = await getExpensesAction();
 
@@ -74,6 +98,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       } else if (e.propertyId !== filterProperty) return false;
     }
     if (filterCategory && e.category !== filterCategory) return false;
+    if (filterReceipt && receiptStatus(e) !== filterReceipt) return false;
     if (filterSearch) {
       const hay = `${e.description ?? ""} ${CATEGORY_LABELS[e.category] ?? ""} ${e.notes ?? ""}`.toLowerCase();
       if (!hay.includes(filterSearch)) return false;
@@ -88,6 +113,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const totalAll = filtered.reduce((s, e) => s + e.amountCents, 0);
   const totalUmlegbar = filtered.filter((e) => isOperatingCost(e.category)).reduce((s, e) => s + e.amountCents, 0);
   const totalNichtUmlegbar = totalAll - totalUmlegbar;
+  const missing = filtered.filter((e) => receiptStatus(e) === "missing");
+  const missingCents = missing.reduce((s, e) => s + e.amountCents, 0);
 
   // Gruppierung nach Jahr (nach sortKey)
   const byYear = new Map<number, Expense[]>();
@@ -120,6 +147,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           ) : (
             <span className="font-medium italic text-muted-foreground">{CATEGORY_LABELS[e.category]}</span>
           )}
+          <ReceiptBadge e={e} />
         </div>
         {e.servicePeriodStart && e.servicePeriodEnd && (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
@@ -194,6 +222,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
             currentCategory={filterCategory}
             currentSearch={sp.q ?? ""}
             currentSort={sortMode}
+            currentReceipt={filterReceipt}
           />
 
           {/* KPIs */}
@@ -201,7 +230,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
             <div className="rounded-xl border bg-card px-4 py-3">
               <p className="text-xs text-muted-foreground mb-1">Σ Gefiltert</p>
               <p className="text-lg font-bold tabular-nums">{formatMoney(totalAll)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{filtered.length} Einträge</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {filtered.length} Einträge
+                {missing.length > 0 && filterReceipt !== "missing" && (
+                  <>
+                    {" · "}
+                    <Link href={`/expenses?${new URLSearchParams({ ...sp, beleg: "missing" } as Record<string, string>)}`} className="text-amber-600 underline">
+                      {missing.length} ohne Beleg ({formatMoney(missingCents)})
+                    </Link>
+                  </>
+                )}
+              </p>
             </div>
             <div className="rounded-xl border bg-card px-4 py-3">
               <div className="flex items-center gap-1.5 mb-1 text-amber-600">
@@ -254,9 +293,12 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
                                 {e.isRecurring && <RefreshCw className="size-3 text-muted-foreground shrink-0" />}
                                 {e.description ? e.description : <span className="italic text-muted-foreground">{CATEGORY_LABELS[e.category]}</span>}
                               </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {formatDate(e.date)}
-                                {e.description && <> · {CATEGORY_LABELS[e.category]}</>}
+                              <p className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5">
+                                <span>
+                                  {formatDate(e.date)}
+                                  {e.description && <> · {CATEGORY_LABELS[e.category]}</>}
+                                </span>
+                                <ReceiptBadge e={e} />
                               </p>
                             </div>
                             <p className="text-right tabular-nums font-semibold shrink-0">{formatMoney(e.amountCents)}</p>

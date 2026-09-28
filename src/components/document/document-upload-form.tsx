@@ -28,6 +28,11 @@ type Props = {
   defaultOpen?: boolean;
   // Optional: Zuordnung im Formular wählbar (Dokumentenseite)
   targets?: DocumentTarget[];
+  // Optional: hochgeladene Dateien direkt als Beleg an diese Ausgabe hängen
+  linkExpenseId?: string;
+  defaultYear?: number;
+  defaultTag?: string;
+  label?: string;
 };
 
 type UploadState =
@@ -36,7 +41,7 @@ type UploadState =
   | { kind: "done"; count: number }
   | { kind: "error"; messages: string[] };
 
-export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, targets }: Props) {
+export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, targets, linkExpenseId, defaultYear, defaultTag, label = "Dokument hochladen" }: Props) {
   const [target, setTarget] = useState(`${entityType}:${entityId}`);
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
@@ -122,6 +127,7 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
         const year = yearInput || String(suggestYear(file.name) ?? "");
         if (year) fd.append("year", year);
         if (notes) fd.append("notes", notes);
+        if (linkExpenseId) fd.append("expenseId", linkExpenseId);
 
         // Netzwerk-/Serverfehler (z. B. Größenlimit) abfangen statt die Seite abstürzen zu lassen
         try {
@@ -160,7 +166,7 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
         title="Klicken oder Dateien hierher ziehen"
       >
         <Upload className="size-4" />
-        Dokument hochladen
+        {label}
       </Button>
     );
   }
@@ -277,7 +283,7 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="doc-tag">Kategorie</Label>
-            <select id="doc-tag" name="tag" className={selectClass} disabled={isUploading} defaultValue="auto">
+            <select id="doc-tag" name="tag" className={selectClass} disabled={isUploading} defaultValue={defaultTag ?? "auto"}>
               <option value="auto">Automatisch erkennen</option>
               {DOCUMENT_TAG_GROUPS.map((g) => (
                 <optgroup key={g.label} label={g.label}>
@@ -288,7 +294,7 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="doc-year">Jahr <span className="text-muted-foreground font-normal">– sonst aus Dateiname</span></Label>
-            <Input id="doc-year" name="year" inputMode="numeric" pattern="(19|20)[0-9]{2}" placeholder="automatisch" disabled={isUploading} />
+            <Input id="doc-year" name="year" inputMode="numeric" pattern="(19|20)[0-9]{2}" placeholder="automatisch" defaultValue={defaultYear ?? undefined} disabled={isUploading} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="doc-notes">Notiz <span className="text-muted-foreground font-normal">– optional</span></Label>

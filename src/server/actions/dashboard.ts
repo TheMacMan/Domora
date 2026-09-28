@@ -2,7 +2,8 @@
 
 import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/db";
-import { leases, nkAbrechnungen } from "@/db/schema";
+import { expenses, leases, nkAbrechnungen } from "@/db/schema";
+import { missingReceiptsByYear } from "@/lib/expense-receipts";
 import { requireUser } from "@/lib/auth";
 import { todayLocal } from "@/lib/dates";
 import { buildFixedRateTimeline } from "@/lib/loan-projection";
@@ -21,7 +22,7 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
   const today = todayLocal();
   const year = parseInt(today.slice(0, 4), 10);
 
-  const [loanList, matrixNow, matrixPrev, ending, prepaymentLeases, nkPrev] = await Promise.all([
+  const [loanList, matrixNow, matrixPrev, ending, prepaymentLeases, nkPrev, recentExpenses] = await Promise.all([
     getLoanAnalyticsAction(),
     getPaymentMatrixAction(year),
     getPaymentMatrixAction(year - 1),
@@ -42,7 +43,16 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
     db.query.nkAbrechnungen.findMany({
       where: and(isNull(nkAbrechnungen.deletedAt), eq(nkAbrechnungen.year, year - 1)),
     }),
+    // Ausgaben des Vor- und laufenden Jahres (bis heute) für die Belegprüfung
+    db.query.expenses.findMany({
+      where: and(isNull(expenses.deletedAt), gte(expenses.date, `${year - 1}-01-01`), lte(expenses.date, today)),
+      with: { receiptLinks: { columns: { documentId: true } } },
+    }),
   ]);
+
+  const missingReceipts = [...missingReceiptsByYear(
+    recentExpenses.map((e) => ({ ...e, receiptCount: e.receiptLinks.length })),
+  )].map(([y, v]) => ({ year: y, ...v }));
 
   const missingDues: Array<{ leaseId: string; label: string; months: string[] }> = [];
   const arrears: Array<{ leaseId: string; label: string; cents: number; year: number }> = [];
@@ -77,5 +87,6 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
         endDate: l.endDate!,
       })),
     missingNkStatements: [...missingNk.values()],
+    missingReceipts,
   });
 }

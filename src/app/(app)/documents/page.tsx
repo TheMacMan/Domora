@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { FileText, FileSpreadsheet, Image as ImageIcon, ShieldAlert } from "lucide-react";
+import { FileText, FileSpreadsheet, Image as ImageIcon, ShieldAlert, Paperclip } from "lucide-react";
+import { formatMoney } from "@/lib/money";
+import { formatDate } from "@/lib/dates";
 import { getAllDocumentsAction } from "@/server/actions/documents";
 import { Badge } from "@/components/ui/badge";
 import { Private } from "@/components/private";
@@ -118,6 +120,17 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                         </Link>
                         <span>· {formatDateObj(d.createdAt)} · {formatBytes(d.sizeBytes)}</span>
                       </div>
+                      {d.expenses.length > 0 && (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                          <Paperclip className="size-3 shrink-0" />
+                          <span>Beleg zu</span>
+                          {d.expenses.map((e) => (
+                            <Link key={e.id} href={`/expenses/${e.id}/edit`} className="underline hover:text-foreground">
+                              {e.description ?? "Ausgabe"} · {formatDate(e.date)} · {formatMoney(e.amountCents)}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                       {d.notes && <p className="mt-1 break-words text-xs text-muted-foreground">{d.notes}</p>}
                       {SENSITIVE_TENANT_TAGS.includes(d.tag) && (
                         <p className="mt-1 inline-flex items-center gap-1 text-xs text-amber-600">
