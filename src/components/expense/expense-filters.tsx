@@ -58,7 +58,7 @@ export function ExpenseFilters({
           type="button"
           onClick={() => setParam("year", null)}
           className={cn(
-            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            "rounded-full border px-3 py-2 text-xs sm:py-1 font-medium transition-colors",
             !currentYear ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:bg-muted",
           )}
         >
@@ -70,7 +70,7 @@ export function ExpenseFilters({
             type="button"
             onClick={() => setParam("year", String(y))}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium transition-colors tabular-nums",
+              "rounded-full border px-3 py-2 text-xs sm:py-1 font-medium transition-colors tabular-nums",
               currentYear === String(y) ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground hover:bg-muted",
             )}
           >

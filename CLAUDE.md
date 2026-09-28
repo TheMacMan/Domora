@@ -134,6 +134,15 @@ pnpm typecheck          # tsc --noEmit
 
 `pnpm typecheck && pnpm lint && pnpm test` muss vor jedem Commit grün sein.
 
+### iPhone zuerst
+Domora wird vor allem am iPhone (installierte Web-App) genutzt. Jede UI-Änderung:
+- mobil zuerst gestalten (375 px Breite, kein seitliches Scrollen, Tippflächen ≥ 36 px, kompakter erst ab `sm:`),
+- keine verschachtelten Links/Buttons in Links (Hydration-Fehler), Eingabefelder nie mit eigener Schrift < 16 px,
+- gegen den laufenden Dienst mit `pnpm test:e2e` prüfen (Playwright, WebKit, iPhone 15; Login per
+  serverseitigem Sitzungs-Cookie, nur lesend). Neue Seiten in `e2e/mobile.spec.ts` (PAGES) ergänzen,
+  Screenshots/`report.json` in `e2e/screenshots/` ansehen (enthalten echte Daten → gitignored).
+- Nach `pnpm add`/Dependency-Änderungen immer neu bauen und den Dienst neu starten.
+
 ## Sensible Daten
 
 - Echte Mieterdaten **niemals** in Test-Fixtures, Seed-Daten oder Logs schreiben.

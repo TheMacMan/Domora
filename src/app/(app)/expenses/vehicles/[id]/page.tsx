@@ -63,7 +63,7 @@ export default async function VehicleDetailPage({ params, searchParams }: { para
             <h2 className="text-sm font-semibold">Jahr</h2>
             {years.map((y) => (
               <Link key={y.year} href={`/expenses/vehicles/${id}?year=${y.year}`}
-                className={cn("rounded-full border px-3 py-1 text-xs tabular-nums", y.year === selected.year ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>
+                className={cn("rounded-full border px-3 py-2 text-xs sm:py-1 tabular-nums", y.year === selected.year ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted")}>
                 {y.year}
               </Link>
             ))}

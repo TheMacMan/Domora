@@ -35,12 +35,21 @@ function yearOf(e: Expense, mode: "date" | "period"): number {
   return parseInt(e.date.slice(0, 4), 10);
 }
 
-function ReceiptBadge({ e }: { e: Expense }) {
+// inLink: steckt in einer Karte, die selbst ein Link ist → keine verschachtelten <a>
+function ReceiptBadge({ e, inLink = false }: { e: Expense; inLink?: boolean }) {
   const status = receiptStatus(e);
   if (status === "linked") {
     return <ReceiptPreviewButton docs={e.receipts} />;
   }
   if (status === "trip_log") {
+    if (inLink) {
+      return (
+        <span className="inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] text-muted-foreground" title="Nachweis: Fahrtenliste">
+          <ListChecks className="size-3" />
+          Fahrtenliste
+        </span>
+      );
+    }
     return (
       <Link
         href={`/expenses/trips?year=${e.date.slice(0, 4)}`}
@@ -311,7 +320,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
                                   {formatDate(e.date)}
                                   {e.description && <> · {CATEGORY_LABELS[e.category]}</>}
                                 </span>
-                                <ReceiptBadge e={e} />
+                                <ReceiptBadge e={e} inLink />
                               </p>
                             </div>
                             <p className="text-right tabular-nums font-semibold shrink-0">{formatMoney(e.amountCents)}</p>

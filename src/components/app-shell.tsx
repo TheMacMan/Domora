@@ -45,7 +45,7 @@ function SidebarContent({ userName, logoutAction }: { userName: string; logoutAc
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground leading-none">Domora</p>
         </div>
-        <PrivacyToggle className="size-7 shrink-0" />
+        <PrivacyToggle className="size-10 shrink-0 md:size-7" />
       </div>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
@@ -89,7 +89,7 @@ function SidebarContent({ userName, logoutAction }: { userName: string; logoutAc
         </div>
         <form action={logoutAction}>
           <Button variant="ghost" size="icon" type="submit" title="Abmelden"
-            className="size-7 text-muted-foreground hover:text-foreground shrink-0">
+            className="size-10 text-muted-foreground hover:text-foreground shrink-0 md:size-7">
             <LogOut className="size-3.5" />
           </Button>
         </form>
@@ -162,7 +162,7 @@ export function AppShell({
             size="icon"
             onClick={() => setOpen((o) => !o)}
             aria-label={open ? "Menü schließen" : "Menü öffnen"}
-            className="size-9"
+            className="size-10"
           >
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </Button>
@@ -170,7 +170,7 @@ export function AppShell({
             <DomoraMark className="size-6 rounded-md shadow-sm" />
             <p className="text-sm font-semibold">Domora</p>
           </div>
-          <PrivacyToggle />
+          <PrivacyToggle className="size-10" />
         </header>
 
         <main className="flex-1 min-w-0 overflow-auto">

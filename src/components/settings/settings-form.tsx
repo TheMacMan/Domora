@@ -189,7 +189,7 @@ export function SettingsForm({ defaultValues }: Props) {
             <button
               type="button"
               onClick={() => setShowToken((v) => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-0.5 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground"
               aria-label={showToken ? "Token verbergen" : "Token anzeigen"}
             >
               {showToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

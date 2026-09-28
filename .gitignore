@@ -11,6 +11,9 @@
 /coverage
 /test-results
 /playwright-report
+# Playwright: Sitzung und Screenshots enthalten echte Daten – nie committen
+/e2e/.auth
+/e2e/screenshots
 
 # next.js
 /.next/

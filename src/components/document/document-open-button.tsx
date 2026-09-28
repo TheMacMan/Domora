@@ -19,7 +19,7 @@ export function DocumentOpenButton({
   return (
     <>
       {variant === "title" ? (
-        <button type="button" onClick={() => setOpen(true)} className="block max-w-full truncate text-left font-medium hover:underline">
+        <button type="button" onClick={() => setOpen(true)} className="-my-1 block max-w-full truncate py-1.5 text-left font-medium hover:underline sm:my-0 sm:py-0">
           {children}
         </button>
       ) : (

@@ -37,7 +37,7 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
       </div>
       {entry.items && entry.items.length > 0 && (
         <details className="mt-2 text-xs sm:ml-12">
-          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          <summary className="cursor-pointer py-2 text-muted-foreground hover:text-foreground sm:py-0">
             {entry.items.length} Einzelposten anzeigen
             {(() => {
               const missing = entry.items!.filter((i) => !i.tripLog && i.receipts && i.receipts.length === 0 && i.cents !== 0).length;

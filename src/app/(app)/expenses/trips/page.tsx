@@ -45,7 +45,7 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
             key={y}
             href={`/expenses/trips?year=${y}`}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium tabular-nums",
+              "rounded-full border px-3 py-2 text-xs sm:py-1 font-medium tabular-nums",
               y === year ? "border-foreground bg-foreground text-background" : "text-muted-foreground hover:bg-muted",
             )}
           >
