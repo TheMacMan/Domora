@@ -670,6 +670,10 @@ export const expenseSchedules = sqliteTable("expense_schedules", {
   startMonth: text("start_month").notNull(), // YYYY-MM
   endMonth: text("end_month"),                // YYYY-MM (nullable = offen)
   dayOfMonth: integer("day_of_month").notNull().default(1),
+  // Abschlagsplan: feste Fälligkeiten (JSON-Array YYYY-MM-DD) statt monatlich; null = monatlich
+  dueDates: text("due_dates", { mode: "json" }).$type<string[]>(),
+  // Leistungsjahr des Plans → Leistungszeitraum der erzeugten Buchungen (NK-Abrechnung)
+  serviceYear: integer("service_year"),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),

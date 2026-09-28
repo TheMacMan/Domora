@@ -19,11 +19,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatMoney } from "@/lib/money";
+import { formatDueDates, nextBankDay, parseDueDates } from "@/lib/schedule-dates";
+import { cn } from "@/lib/utils";
 
 type Property = { id: string; street: string; city: string };
 
 type Props =
-  | { mode: "create"; properties: Property[] }
+  | { mode: "create"; properties: Property[]; defaultValues?: Partial<ExpenseScheduleFormInput> }
   | {
       mode: "edit";
       scheduleId: string;
@@ -42,6 +44,7 @@ export function ExpenseScheduleForm(props: Props) {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
     setError,
   } = useForm<ExpenseScheduleFormInput>({
@@ -49,8 +52,12 @@ export function ExpenseScheduleForm(props: Props) {
     defaultValues:
       props.mode === "edit"
         ? props.defaultValues
-        : { dayOfMonth: 1, startMonth: thisMonth, propertyId: null },
+        : { kind: "monthly", dayOfMonth: 1, startMonth: thisMonth, propertyId: null, ...props.defaultValues },
   });
+
+  const kind = watch("kind");
+  const dueDatesText = watch("dueDatesText");
+  const planDates = kind === "plan" ? parseDueDates(dueDatesText ?? "") : null;
 
   const amountEur = watch("amountEur");
   const startMonth = watch("startMonth");
@@ -90,9 +97,41 @@ export function ExpenseScheduleForm(props: Props) {
         </div>
       )}
 
+      <div className="flex flex-col gap-2">
+        <Label>Rhythmus</Label>
+        <div className="grid grid-cols-2 gap-1 rounded-lg border p-1 sm:max-w-md" role="radiogroup">
+          {(
+            [
+              ["monthly", "Monatlich"],
+              ["plan", "Abschlagsplan"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={kind === value}
+              disabled={isPending}
+              onClick={() => setValue("kind", value, { shouldValidate: false })}
+              className={cn(
+                "min-h-10 rounded-md px-3 text-sm font-medium transition-colors",
+                kind === value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {kind === "plan"
+            ? "Feste Fälligkeiten aus einem Bescheid (z. B. Wasser, Abwasser, Grundsteuer). Fällt ein Termin aufs Wochenende, wird am Montag gebucht."
+            : "Eine Buchung je Monat (z. B. Hausgeld, Strom-Abschlag)."}
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="amountEur">Monatlicher Betrag</Label>
+          <Label htmlFor="amountEur">{kind === "plan" ? "Betrag je Abschlag" : "Monatlicher Betrag"}</Label>
           <div className="relative">
             <Input
               id="amountEur"
@@ -113,6 +152,25 @@ export function ExpenseScheduleForm(props: Props) {
           )}
         </div>
 
+        {kind === "plan" ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="serviceYear">
+              Leistungsjahr <span className="text-muted-foreground font-normal">– für die NK-Abrechnung</span>
+            </Label>
+            <Input
+              id="serviceYear"
+              type="number"
+              inputMode="numeric"
+              min="2000"
+              max="2100"
+              step="1"
+              placeholder={String(today.getFullYear())}
+              {...register("serviceYear", { valueAsNumber: true })}
+              disabled={isPending}
+            />
+            {errors.serviceYear && <p className="text-xs text-destructive">Jahr angeben</p>}
+          </div>
+        ) : (
         <div className="flex flex-col gap-2">
           <Label htmlFor="dayOfMonth">Tag im Monat</Label>
           <Input
@@ -129,6 +187,7 @@ export function ExpenseScheduleForm(props: Props) {
             <p className="text-xs text-destructive">{errors.dayOfMonth.message}</p>
           )}
         </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="category">Kategorie (Anlage V)</Label>
@@ -170,6 +229,24 @@ export function ExpenseScheduleForm(props: Props) {
           </select>
         </div>
 
+        {kind === "plan" ? (
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <Label htmlFor="dueDatesText">Fälligkeiten laut Bescheid</Label>
+            <Input
+              id="dueDatesText"
+              inputMode="numeric"
+              placeholder="01.03.2026, 01.06.2026, 01.09.2026, 01.11.2026"
+              {...register("dueDatesText")}
+              disabled={isPending}
+            />
+            {errors.dueDatesText ? (
+              <p className="text-xs text-destructive">{errors.dueDatesText.message}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Mit Komma getrennt, höchstens ein Termin je Monat.</p>
+            )}
+          </div>
+        ) : (
+        <>
         <div className="flex flex-col gap-2">
           <Label htmlFor="startMonth">Startmonat</Label>
           <Input
@@ -200,6 +277,8 @@ export function ExpenseScheduleForm(props: Props) {
             <p className="text-xs text-destructive">{errors.endMonth.message}</p>
           )}
         </div>
+        </>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -217,7 +296,23 @@ export function ExpenseScheduleForm(props: Props) {
         )}
       </div>
 
-      {monthsCount != null && amountEur > 0 && (
+      {planDates && planDates.dates.length > 0 && planDates.invalid.length === 0 && amountEur > 0 && (
+        <div className="rounded-md bg-muted/30 border px-4 py-3 text-sm space-y-1">
+          <p>
+            <span className="text-muted-foreground">Vorschau: </span>
+            <span className="font-medium">{planDates.dates.length}</span> Abschläge ×{" "}
+            <span className="font-medium tabular-nums">{formatMoney(Math.round(amountEur * 100))}</span> ={" "}
+            <span className="font-semibold tabular-nums">
+              {formatMoney(Math.round(amountEur * 100) * planDates.dates.length)}
+            </span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Buchungstage: {formatDueDates(planDates.dates.map(nextBankDay))}
+          </p>
+        </div>
+      )}
+
+      {kind !== "plan" && monthsCount != null && amountEur > 0 && (
         <div className="rounded-md bg-muted/30 border px-4 py-3 text-sm">
           <span className="text-muted-foreground">Vorschau: </span>
           <span className="font-medium">{monthsCount}</span> Buchungen ×{" "}

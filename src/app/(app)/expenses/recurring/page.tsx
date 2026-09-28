@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatMoney } from "@/lib/money";
 import { CATEGORY_LABELS } from "@/lib/expense";
+import { formatDueDates } from "@/lib/schedule-dates";
 import { Plus, Pencil, Trash2, Repeat } from "lucide-react";
 
 export const metadata = { title: "Abos – Domora" };
@@ -50,8 +51,8 @@ export default async function ExpenseSchedulesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Ausgaben</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Monatlich wiederkehrende Ausgaben (z. B. Hausgeld). Generiert automatisch eine
-            Buchung pro Monat.
+            Wiederkehrende Ausgaben: monatlich (z. B. Hausgeld) oder als Abschlagsplan mit festen
+            Terminen aus einem Bescheid. Die Buchungen werden automatisch erzeugt.
           </p>
         </div>
         <Button asChild size="sm">
@@ -110,14 +111,24 @@ export default async function ExpenseSchedulesPage() {
                       : "Alle Objekte (anteilig)"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatMonth(s.startMonth)} –{" "}
-                    {s.endMonth ? formatMonth(s.endMonth) : "laufend"} · Tag {s.dayOfMonth}.
+                    {s.dueDates ? (
+                      <>
+                        Abschlagsplan{s.serviceYear ? ` ${s.serviceYear}` : ""} · {formatDueDates(s.dueDates)}
+                      </>
+                    ) : (
+                      <>
+                        {formatMonth(s.startMonth)} – {s.endMonth ? formatMonth(s.endMonth) : "laufend"} · Tag{" "}
+                        {s.dayOfMonth}.
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <p className="text-base font-semibold tabular-nums">
                     {formatMoney(s.amountCents)}
-                    <span className="text-xs font-normal text-muted-foreground">/Mon.</span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      {s.dueDates ? "/Abschlag" : "/Mon."}
+                    </span>
                   </p>
                   <div className="flex gap-1">
                     <Button asChild variant="ghost" size="iconSm">

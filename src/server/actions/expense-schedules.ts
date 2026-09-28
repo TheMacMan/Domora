@@ -12,30 +12,43 @@ import {
   type ExpenseScheduleFormInput,
 } from "@/lib/validators/expense-schedule";
 import { writeAuditLog } from "@/lib/audit";
+import { parseDueDates, scheduleOccurrences } from "@/lib/schedule-dates";
 
 type ActionResult<T = undefined> =
   | (T extends undefined ? { ok: true } : { ok: true; data: T })
   | { ok: false; error: string };
 
 function toDb(data: ExpenseScheduleFormInput) {
-  return {
+  const base = {
     propertyId: data.propertyId,
     category: data.category,
     amountCents: toCents(data.amountEur),
     description: data.description ?? null,
-    startMonth: data.startMonth,
-    endMonth: data.endMonth || null,
-    dayOfMonth: data.dayOfMonth,
     notes: data.notes ?? null,
   };
-}
-
-// Hilfsfunktionen
-function addMonth(ym: string): string {
-  const [y, m] = ym.split("-").map(Number) as [number, number];
-  const nm = m === 12 ? 1 : m + 1;
-  const ny = m === 12 ? y + 1 : y;
-  return `${ny}-${String(nm).padStart(2, "0")}`;
+  if (data.kind === "plan") {
+    const dates = parseDueDates(data.dueDatesText ?? "").dates;
+    // ohne Angabe: Jahr des ersten Termins
+    const year =
+      data.serviceYear && !Number.isNaN(data.serviceYear) ? data.serviceYear : parseInt(dates[0]!.slice(0, 4), 10);
+    return {
+      ...base,
+      // Start/Ende aus den Terminen — für Listen und Status
+      startMonth: dates[0]!.slice(0, 7),
+      endMonth: dates[dates.length - 1]!.slice(0, 7),
+      dayOfMonth: 1,
+      dueDates: dates,
+      serviceYear: year,
+    };
+  }
+  return {
+    ...base,
+    startMonth: data.startMonth!,
+    endMonth: data.endMonth || null,
+    dayOfMonth: data.dayOfMonth ?? 1,
+    dueDates: null,
+    serviceYear: null,
+  };
 }
 
 function horizonMonth(monthsAhead: number): string {
@@ -44,25 +57,21 @@ function horizonMonth(monthsAhead: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-// Generiert oder aktualisiert die monatlichen Expense-Zeilen für eine Schedule.
-// - Innerhalb [startMonth, endMonth ?? horizon] werden Einträge angelegt/aktualisiert.
+// Generiert oder aktualisiert die Buchungen eines Abos.
+// - Monatlich: je Monat in [startMonth, endMonth ?? 12 Monate voraus]
+// - Abschlagsplan: je Termin (Wochenende → Montag), Leistungszeitraum = Leistungsjahr
 // - Einträge mit `wegAbrechnungId` (in finaler WEG-Abrechnung) werden NICHT verändert.
-// - Einträge außerhalb des Zeitraums werden soft-deleted (außer mit wegAbrechnungId).
+// - Einträge ohne passenden Termin werden soft-deleted (außer mit wegAbrechnungId).
 export async function regenerateSchedule(scheduleId: string): Promise<void> {
   const sched = await db.query.expenseSchedules.findFirst({
     where: and(eq(expenseSchedules.id, scheduleId), isNull(expenseSchedules.deletedAt)),
   });
   if (!sched) return;
 
-  const endMonth = sched.endMonth ?? horizonMonth(12);
-  const months: string[] = [];
-  let cur = sched.startMonth;
-  // Safety: max 240 Monate (20 Jahre)
-  let safety = 0;
-  while (cur <= endMonth && safety++ < 240) {
-    months.push(cur);
-    cur = addMonth(cur);
-  }
+  const occurrences = scheduleOccurrences(sched, horizonMonth(12));
+  const period = sched.serviceYear
+    ? { servicePeriodStart: `${sched.serviceYear}-01-01`, servicePeriodEnd: `${sched.serviceYear}-12-31` }
+    : {};
 
   const existing = await db.query.expenses.findMany({
     where: and(eq(expenses.scheduleId, scheduleId), isNull(expenses.deletedAt)),
@@ -72,22 +81,19 @@ export async function regenerateSchedule(scheduleId: string): Promise<void> {
     existingByMonth.set(e.date.slice(0, 7), e);
   }
 
-  const dayStr = String(sched.dayOfMonth).padStart(2, "0");
-
-  // Upsert pro Monat
-  for (const ym of months) {
-    const date = `${ym}-${dayStr}`;
-    const e = existingByMonth.get(ym);
+  for (const o of occurrences) {
+    const e = existingByMonth.get(o.key);
     if (!e) {
       await db.insert(expenses).values({
         id: createId(),
         propertyId: sched.propertyId,
         category: sched.category,
         amountCents: sched.amountCents,
-        date,
+        date: o.date,
         description: sched.description,
         isRecurring: true,
         scheduleId,
+        ...period,
       });
     } else if (!e.wegAbrechnungId) {
       // nur ändern, wenn nicht in finaler WEG-Abrechnung verankert
@@ -97,16 +103,16 @@ export async function regenerateSchedule(scheduleId: string): Promise<void> {
           propertyId: sched.propertyId,
           category: sched.category,
           amountCents: sched.amountCents,
-          date,
+          date: o.date,
           description: sched.description,
+          ...period,
           updatedAt: new Date(),
         })
         .where(eq(expenses.id, e.id));
     }
   }
 
-  // Außerhalb des Zeitraums soft-delete (nur falls nicht in WEG-Abrechnung)
-  const expectedSet = new Set(months);
+  const expectedSet = new Set(occurrences.map((o) => o.key));
   for (const e of existing) {
     const ym = e.date.slice(0, 7);
     if (!expectedSet.has(ym) && !e.wegAbrechnungId) {

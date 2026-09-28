@@ -3,6 +3,10 @@ import { getPropertiesAction } from "@/server/actions/properties";
 import { getExpenseScheduleAction } from "@/server/actions/expense-schedules";
 import { ExpenseScheduleForm } from "@/components/expense/expense-schedule-form";
 import { toEuros } from "@/lib/money";
+import { formatDueDates } from "@/lib/schedule-dates";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
 import { getReceiptPanelAction } from "@/server/actions/document-links";
 import { getDocumentTargetsAction } from "@/server/actions/documents";
 import { ReceiptsSection } from "@/components/expense/receipts-section";
@@ -26,12 +30,27 @@ export default async function EditExpenseSchedulePage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Abo bearbeiten</h1>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {sched.dueDates ? "Abschlagsplan bearbeiten" : "Abo bearbeiten"}
+        </h1>
+        {sched.dueDates && (
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/expenses/recurring/new?copy=${sched.id}`}>
+              <CalendarPlus className="size-4" />
+              Plan fürs Folgejahr
+            </Link>
+          </Button>
+        )}
+      </div>
       <ExpenseScheduleForm
         mode="edit"
         scheduleId={sched.id}
         properties={properties}
         defaultValues={{
+          kind: sched.dueDates ? "plan" : "monthly",
+          dueDatesText: sched.dueDates ? formatDueDates(sched.dueDates) : "",
+          serviceYear: sched.serviceYear ?? undefined,
           propertyId: sched.propertyId,
           category: sched.category,
           amountEur: toEuros(sched.amountCents),
