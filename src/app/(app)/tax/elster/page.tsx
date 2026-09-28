@@ -4,7 +4,7 @@ import { getTaxPropertiesAction, getElsterAnlageVAction } from "@/server/actions
 import { Button } from "@/components/ui/button";
 import { CopyValue } from "@/components/tax/copy-value";
 import { formatMoney } from "@/lib/money";
-import { formatDate } from "@/lib/dates";
+import { formatDate, todayLocal } from "@/lib/dates";
 import type { ElsterEntry, ElsterSection } from "@/lib/tax/elster";
 import { AlertTriangle } from "lucide-react";
 import { ReceiptPreviewButton } from "@/components/expense/receipt-preview-button";
@@ -40,7 +40,7 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
           <summary className="cursor-pointer py-2 text-muted-foreground hover:text-foreground sm:py-0">
             {entry.items.length} Einzelposten anzeigen
             {(() => {
-              const missing = entry.items!.filter((i) => !i.tripLog && i.receipts && i.receipts.length === 0 && i.cents !== 0).length;
+              const missing = entry.items!.filter((i) => !i.tripLog && i.receipts && i.receipts.length === 0 && i.cents !== 0 && (i.date ?? "") <= todayLocal()).length;
               return missing > 0 ? <span className="ml-1 text-amber-600">· {missing} ohne Beleg</span> : null;
             })()}
           </summary>
@@ -59,6 +59,8 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
                   <Link href={`/expenses/trips?year=${i.date?.slice(0, 4) ?? ""}`} className="shrink-0 text-[11px] text-muted-foreground hover:underline" title="Nachweis: Fahrtenliste">
                     Fahrtenliste
                   </Link>
+                ) : i.date && i.date > todayLocal() ? (
+                  <span className="shrink-0 text-[11px] text-muted-foreground">geplant</span>
                 ) : i.receipts && (
                   i.receipts.length > 0 ? (
                     <ReceiptPreviewButton docs={i.receipts} />

@@ -62,6 +62,9 @@ describe("Belegpflicht", () => {
     expect(receiptStatus({ amountCents: 100, receiptCount: 2 })).toBe("linked");
     expect(receiptStatus({ amountCents: 100, receiptCount: 0 })).toBe("missing");
     expect(receiptStatus({ amountCents: 0, receiptCount: 0 })).toBe("not_needed");
+    // Zukünftige Buchung (z. B. Abo) → geplant, nicht „fehlt"
+    expect(receiptStatus({ amountCents: 57_100, receiptCount: 0, date: "2026-10-01" }, "2026-09-28")).toBe("planned");
+    expect(receiptStatus({ amountCents: 57_100, receiptCount: 0, date: "2026-09-01" }, "2026-09-28")).toBe("missing");
     // Fahrtkosten: Nachweis ist die Fahrtenliste
     expect(receiptStatus({ amountCents: 7_333, receiptCount: 0, tripId: "t1" })).toBe("trip_log");
     expect(needsReceipt({ amountCents: 7_333, tripId: "t1" })).toBe(false);

@@ -3,7 +3,7 @@ import { ExpenseTabs } from "@/components/expense/expense-tabs";
 import { getExpensesAction } from "@/server/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/money";
-import { formatDate, formatMonthShort } from "@/lib/dates";
+import { formatDate, formatMonthShort, todayLocal } from "@/lib/dates";
 import { CATEGORY_LABELS, isOperatingCost } from "@/lib/expense";
 import { ExpenseFilters } from "@/components/expense/expense-filters";
 import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, AlertTriangle, Car, ListChecks } from "lucide-react";
@@ -37,7 +37,7 @@ function yearOf(e: Expense, mode: "date" | "period"): number {
 
 // inLink: steckt in einer Karte, die selbst ein Link ist → keine verschachtelten <a>
 function ReceiptBadge({ e, inLink = false }: { e: Expense; inLink?: boolean }) {
-  const status = receiptStatus(e);
+  const status = receiptStatus(e, todayLocal());
   if (status === "linked") {
     return <ReceiptPreviewButton docs={e.receipts} />;
   }
@@ -61,6 +61,9 @@ function ReceiptBadge({ e, inLink = false }: { e: Expense; inLink?: boolean }) {
       </Link>
     );
   }
+  if (status === "planned") {
+    return <span className="whitespace-nowrap text-[11px] text-muted-foreground" title="Noch nicht fällig – Beleg erst nach Zahlung">geplant</span>;
+  }
   if (status === "missing") {
     return (
       <span className="inline-flex items-center gap-0.5 whitespace-nowrap text-[11px] text-amber-600" title="Kein Beleg verknüpft">
@@ -82,6 +85,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const filterReceipt = sp.beleg === "missing" || sp.beleg === "linked" ? sp.beleg : "";
 
   const all = await getExpensesAction();
+  const today = todayLocal();
 
   // Jahres-Liste für Pills (alle Jahre in den Daten — sowohl Buchungs- als auch Leistungsjahre)
   const yearsSet = new Set<number>();
@@ -118,7 +122,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
     }
     if (filterCategory && e.category !== filterCategory) return false;
     if (filterReceipt) {
-      const st = receiptStatus(e);
+      const st = receiptStatus(e, today);
       // „Mit Beleg" umfasst auch Fahrtkosten (Nachweis: Fahrtenliste)
       if (filterReceipt === "linked" ? st !== "linked" && st !== "trip_log" : st !== filterReceipt) return false;
     }
@@ -136,7 +140,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const totalAll = filtered.reduce((s, e) => s + e.amountCents, 0);
   const totalUmlegbar = filtered.filter((e) => isOperatingCost(e.category)).reduce((s, e) => s + e.amountCents, 0);
   const totalNichtUmlegbar = totalAll - totalUmlegbar;
-  const missing = filtered.filter((e) => receiptStatus(e) === "missing");
+  const missing = filtered.filter((e) => receiptStatus(e, today) === "missing");
   const missingCents = missing.reduce((s, e) => s + e.amountCents, 0);
 
   // Gruppierung nach Jahr (nach sortKey)

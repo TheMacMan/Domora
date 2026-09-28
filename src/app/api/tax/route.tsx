@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
         cents: i.cents,
         beleg: i.tripLog
           ? `Fahrtenliste ${year}`
+          : i.date && i.date > new Date().toISOString().slice(0, 10) ? "geplant"
           : i.receipts && i.receipts.length > 0 ? i.receipts.map((r) => r.title ?? r.filename).join(", ") : null,
       })),
     ),

@@ -48,7 +48,8 @@ export function groupLinksByTarget(links: ReceiptLink[]): Map<string, ReceiptLin
 
 // "trip_log": Fahrtkosten — Nachweis ist die Fahrt selbst (Fahrtenliste). Belegpflichtig sind
 // dort nur die Grundlagen des km-Satzes (Fahrzeugkosten, km-Stände), die getrennt geprüft werden.
-export type ReceiptStatus = "linked" | "missing" | "not_needed" | "trip_log";
+// "planned": Buchung liegt in der Zukunft (z. B. aus einem Abo erzeugt) — noch nicht gezahlt, noch kein Beleg nötig
+export type ReceiptStatus = "linked" | "missing" | "not_needed" | "trip_log" | "planned";
 
 // Nullbuchungen (z. B. nicht gezahlte Rate) und Fahrtkosten brauchen keinen eigenen Beleg.
 // Abo- und WEG-Buchungen brauchen einen — er kann am Abo bzw. an der WEG-Abrechnung hängen.
@@ -56,9 +57,13 @@ export function needsReceipt(e: { amountCents: number; tripId?: string | null })
   return e.amountCents !== 0 && !e.tripId;
 }
 
-export function receiptStatus(e: { amountCents: number; receiptCount: number; tripId?: string | null }): ReceiptStatus {
+export function receiptStatus(
+  e: { amountCents: number; receiptCount: number; tripId?: string | null; date?: string },
+  today?: string,
+): ReceiptStatus {
   if (e.tripId) return "trip_log";
   if (e.receiptCount > 0) return "linked";
+  if (today && e.date && e.date > today) return "planned";
   return needsReceipt(e) ? "missing" : "not_needed";
 }
 
