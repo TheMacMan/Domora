@@ -70,7 +70,7 @@ src/
       tenants/
       leases/
       payments/
-      expenses/
+      expenses/           # Reiter: Einzelbuchungen, Abos, Fahrten (trips/), Fahrzeuge (vehicles/)
       loans/
       cashflow/
       service-charges/    # Nebenkostenabrechnung (NK) pro Mietverhältnis

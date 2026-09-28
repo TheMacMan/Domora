@@ -2,10 +2,10 @@
 
 import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { properties, propertyDepreciationItems, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
+import { trips, properties, propertyDepreciationItems, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { resolveReceipts } from "@/lib/expense-receipts";
-import { loadReceiptLinks } from "@/server/receipt-links";
+import { expenseReceipts, loadReceiptContext } from "@/server/receipt-links";
+import { computeVehicleYearFor } from "@/server/trip-sync";
 import { calcAnlageV, calcAfA, buildLoanInterestPayments, receiptsToAnlageVPayments, depreciationItemsSumForYear, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
 import { buildElsterAnlageV, type ElsterAnlageV } from "@/lib/tax/elster";
 
@@ -74,8 +74,8 @@ async function loadTaxYearData(propertyId: string, year: number) {
   const propertyCount = Math.max(allProperties.length, 1);
 
   // Belege je Ausgabe (eigene + geerbte) — nur Verweis, ändert keine Beträge
-  const receiptLinks = await loadReceiptLinks();
-  const receiptsOf = (e: (typeof allExpenses)[number]) => resolveReceipts(e, receiptLinks).map((r) => r.doc);
+  const receiptCtx = await loadReceiptContext();
+  const receiptsOf = (e: (typeof allExpenses)[number]) => expenseReceipts(e, receiptCtx).map((r) => r.doc);
 
   const propertyExpenses = allExpenses
     .filter((e) => e.date.startsWith(yearStr))
@@ -218,6 +218,22 @@ export async function getElsterAnlageVAction(propertyId: string, year: number): 
       receipts: e.receipts,
     })),
   });
+
+  // Fahrtkosten aus vorläufigem km-Satz (km-Stand fehlt)
+  const yearTrips = await db.query.trips.findMany({
+    where: and(eq(trips.propertyId, propertyId), isNull(trips.deletedAt), gte(trips.date, `${year}-01-01`), lte(trips.date, `${year}-12-31`)),
+    with: { vehicle: true },
+  });
+  for (const vid of new Set(yearTrips.map((t) => t.vehicleId))) {
+    const calc = await computeVehicleYearFor(vid, year);
+    if (calc?.result.provisional) {
+      const name = yearTrips.find((t) => t.vehicleId === vid)!.vehicle.name;
+      result.warnings.push({
+        zeile: "76",
+        text: `Fahrtkosten mit vorläufigem km-Satz (${name}): km-Stand zum Jahresbeginn/-ende fehlt, gerechnet wird mit geschätzten km. Vor der Übertragung km-Stände erfassen oder die Pauschale 0,30 €/km wählen.`,
+      });
+    }
+  }
 
   // Gegenprobe mit der Anlage-V-Übersicht
   const ergebnis = await getAnlageVAction(propertyId, year);

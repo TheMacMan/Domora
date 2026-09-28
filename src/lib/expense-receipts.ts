@@ -2,22 +2,24 @@
 // geerbte vom Abo bzw. von der WEG-Abrechnung), welche Buchung braucht noch einen Beleg,
 // welche Dokumente kommen als Beleg in Frage. Reine Funktionen, Beträge in Cents.
 
-export type LinkTargetType = "expense" | "expense_schedule" | "weg_abrechnung";
+export type LinkTargetType = "expense" | "expense_schedule" | "weg_abrechnung" | "vehicle_cost" | "vehicle_year";
 
 export type ReceiptDoc = { id: string; filename: string; title: string | null; mimeType: string };
 
 // Aktive Verknüpfung (gelöste und gelöschte Dokumente sind bereits herausgefiltert)
 export type ReceiptLink = { linkId: string; targetType: LinkTargetType; targetId: string; doc: ReceiptDoc };
 
-export type ReceiptSource = "own" | "schedule" | "weg";
+export type ReceiptSource = "own" | "schedule" | "weg" | "vehicle";
 
 export type ResolvedReceipt = ReceiptLink & { source: ReceiptSource };
 
-// Belege einer Ausgabe: eigene Verknüpfungen, dazu die des Abos und der WEG-Abrechnung.
+// Belege einer Ausgabe: eigene Verknüpfungen, dazu die des Abos, der WEG-Abrechnung und —
+// bei Fahrtkosten — die des Fahrzeugjahres und der Fahrzeugkosten (vehicleKeys).
 // Ein Dokument erscheint nur einmal (eigene Verknüpfung hat Vorrang).
 export function resolveReceipts(
   e: { id: string; scheduleId: string | null; wegAbrechnungId: string | null },
   byTarget: Map<string, ReceiptLink[]>,
+  vehicleKeys: string[] = [],
 ): ResolvedReceipt[] {
   const out: ResolvedReceipt[] = [];
   const seen = new Set<string>();
@@ -31,6 +33,7 @@ export function resolveReceipts(
   add(`expense:${e.id}`, "own");
   if (e.scheduleId) add(`expense_schedule:${e.scheduleId}`, "schedule");
   if (e.wegAbrechnungId) add(`weg_abrechnung:${e.wegAbrechnungId}`, "weg");
+  for (const k of vehicleKeys) add(k, "vehicle");
   return out;
 }
 

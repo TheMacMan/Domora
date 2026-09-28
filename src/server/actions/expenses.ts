@@ -9,10 +9,10 @@ import { requireUser } from "@/lib/auth";
 import { toCents } from "@/lib/money";
 import { expenseSchema, type ExpenseFormInput } from "@/lib/validators/expense";
 import { writeAuditLog } from "@/lib/audit";
-import { resolveReceipts, tagForExpenseCategory } from "@/lib/expense-receipts";
+import { tagForExpenseCategory } from "@/lib/expense-receipts";
 import { GENERAL_ENTITY_ID } from "@/lib/validators/document";
 import { uploadDocumentAction } from "@/server/actions/documents";
-import { loadReceiptLinks } from "@/server/receipt-links";
+import { expenseReceipts, loadReceiptContext } from "@/server/receipt-links";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; id: string; receiptErrors: string[] } | { ok: false; error: string };
@@ -76,6 +76,9 @@ export async function updateExpenseAction(id: string, data: ExpenseFormInput): P
   if (before.scheduleId) {
     return { ok: false, error: "Diese Buchung gehört zu einem Abo. Bitte das Abo bearbeiten." };
   }
+  if (before.tripId) {
+    return { ok: false, error: "Diese Buchung wird aus einer Fahrt berechnet. Bitte die Fahrt bearbeiten." };
+  }
 
   await db.update(expenses).set({ ...toDb(parsed.data), updatedAt: new Date() }).where(eq(expenses.id, id));
 
@@ -92,6 +95,9 @@ export async function deleteExpenseAction(id: string): Promise<ActionResult> {
   if (!expense || expense.deletedAt) return { ok: false, error: "Ausgabe nicht gefunden." };
   if (expense.scheduleId) {
     return { ok: false, error: "Diese Buchung gehört zu einem Abo und kann nur über das Abo gelöscht werden." };
+  }
+  if (expense.tripId) {
+    return { ok: false, error: "Diese Buchung gehört zu einer Fahrt und kann nur über die Fahrt gelöscht werden." };
   }
 
   await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, id));
@@ -111,10 +117,10 @@ export async function getExpensesAction(filters?: { propertyId?: string; year?: 
     with: { property: true },
   });
   // Belege: eigene plus geerbte (Abo, WEG-Abrechnung)
-  const byTarget = await loadReceiptLinks();
+  const receiptCtx = await loadReceiptContext();
 
   let result = rows.map((e) => {
-    const receipts = resolveReceipts(e, byTarget).map((r) => r.doc);
+    const receipts = expenseReceipts(e, receiptCtx).map((r) => r.doc);
     return { ...e, receipts, receiptCount: receipts.length };
   });
 

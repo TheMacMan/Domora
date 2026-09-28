@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SectionTabs } from "@/components/section-tabs";
+import { ExpenseTabs } from "@/components/expense/expense-tabs";
 import { revalidatePath } from "next/cache";
 import {
   getExpenseSchedulesAction,
@@ -62,10 +62,7 @@ export default async function ExpenseSchedulesPage() {
         </Button>
       </div>
 
-      <SectionTabs tabs={[
-        { href: "/expenses", label: "Einzelbuchungen", active: false },
-        { href: "/expenses/recurring", label: "Abos (wiederkehrend)", active: true },
-      ]} />
+      <ExpenseTabs active="recurring" />
 
       {schedules.length === 0 ? (
         <div className="rounded-xl border border-dashed py-16 text-center">

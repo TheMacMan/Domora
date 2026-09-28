@@ -25,6 +25,12 @@ export type TaskInput = {
   missingNkStatements: Array<{ propertyId: string; label: string; year: number }>;
   // Ausgaben ohne verknüpften Beleg je Buchungsjahr
   missingReceipts?: Array<{ year: number; count: number; cents: number }>;
+  // Fahrzeugjahre mit Fahrten, deren km-Satz mangels km-Stand vorläufig ist (abgeschlossene Jahre)
+  provisionalVehicleYears?: Array<{ vehicleId: string; label: string; year: number }>;
+  // Fahrzeugkosten ohne Beleg je Jahr (ab Bagatellgrenze)
+  vehicleCostsMissingReceipts?: Array<{ year: number; count: number; cents: number }>;
+  // Objekte, die sehr häufig angefahren werden (Hinweis regelmäßige Tätigkeitsstätte)
+  frequentDestinations?: Array<{ propertyId: string; label: string; year: number; count: number }>;
 };
 
 const SEVERITY_ORDER: Record<TaskSeverity, number> = { urgent: 0, warning: 1, info: 2 };
@@ -118,6 +124,38 @@ export function buildDashboardTasks(input: TaskInput): DashboardTask[] {
       detail: "ab 20 € je Buchung · Rechnung oder Bon hochladen und verknüpfen — ohne Beleg nicht in die Steuererklärung übernehmen",
       href: `/expenses?year=${r.year}&beleg=missing`,
       amountCents: r.cents,
+    });
+  }
+
+  for (const v of input.provisionalVehicleYears ?? []) {
+    tasks.push({
+      id: `odometer-${v.vehicleId}-${v.year}`,
+      severity: "warning",
+      title: `km-Stand ${v.year} fehlt: ${v.label}`,
+      detail: `Fahrtkosten ${v.year} sind nur vorläufig (geschätzte km) · km-Stand zum 01.01. und 31.12. erfassen oder Pauschale 0,30 €/km wählen`,
+      href: `/expenses/vehicles/${v.vehicleId}?year=${v.year}`,
+    });
+  }
+
+  for (const r of input.vehicleCostsMissingReceipts ?? []) {
+    if (r.count <= 0) continue;
+    tasks.push({
+      id: `vehicle-receipts-${r.year}`,
+      severity: r.year < currentYear ? "warning" : "info",
+      title: `${r.count} ${r.count === 1 ? "Fahrzeugkosten-Posten" : "Fahrzeugkosten-Posten"} ${r.year} ohne Beleg`,
+      detail: "Leasing, Versicherung, Reifen … — die Kosten bestimmen den km-Satz und müssen belegt sein",
+      href: "/expenses/vehicles",
+      amountCents: r.cents,
+    });
+  }
+
+  for (const f of input.frequentDestinations ?? []) {
+    tasks.push({
+      id: `frequent-${f.propertyId}-${f.year}`,
+      severity: "info",
+      title: `${f.count} Fahrten ${f.year} zu ${f.label}`,
+      detail: "Sehr häufige Fahrten: Prüfen, ob das Objekt als regelmäßige Tätigkeitsstätte gilt (dann nur Entfernungspauschale)",
+      href: `/expenses/trips?year=${f.year}`,
     });
   }
 

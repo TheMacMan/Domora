@@ -233,6 +233,8 @@ export async function getCashflowAction(year: number): Promise<CashflowResult> {
     // WEG-Einzelposten überspringen — der echte Geldfluss ist über das monatliche
     // Hausgeld (weg_hausgeld) und den Saldo (weg_saldo, mit Vorzeichen) abgebildet.
     if (e.wegAbrechnungId && e.category !== "weg_saldo") continue;
+    // Fahrtkosten: kein Geldfluss vom Mietkonto (Fahrzeug privat bezahlt)
+    if (e.tripId) continue;
     const { perMonth, coveredMonths } = distributeToYear(e, year, 0);
     if (coveredMonths === 0) continue;
     for (let monthIdx = 0; monthIdx < 12; monthIdx++) {

@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { documents, expenses, expenseSchedules, leases, properties, tenants, wegAbrechnungen } from "@/db/schema";
+import { documents, expenses, expenseSchedules, leases, properties, tenants, vehicleCosts, vehicleYears, wegAbrechnungen } from "@/db/schema";
 import { createDocumentLink, linkTargetExists } from "@/server/receipt-links";
 import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
@@ -236,7 +236,7 @@ db.query.documents.findMany({
   }
   label.set(`general:${GENERAL_ENTITY_ID}`, "Allgemein");
   // Verknüpfte Buchungen je Dokument (Ausgaben, Abos, WEG-Abrechnungen) mit Anzeige-Label
-  const linkIds = { expense: new Set<string>(), expense_schedule: new Set<string>(), weg_abrechnung: new Set<string>() };
+  const linkIds = { expense: new Set<string>(), expense_schedule: new Set<string>(), weg_abrechnung: new Set<string>(), vehicle_cost: new Set<string>(), vehicle_year: new Set<string>() };
   for (const d of docs) for (const l of d.links) linkIds[l.targetType].add(l.targetId);
   const [linkedExpenses, linkedSchedules, linkedWeg] = await Promise.all([
     linkIds.expense.size ? db.query.expenses.findMany({ where: and(inArray(expenses.id, [...linkIds.expense]), isNull(expenses.deletedAt)) }) : [],
@@ -247,6 +247,12 @@ db.query.documents.findMany({
   for (const e of linkedExpenses) linkLabel.set(`expense:${e.id}`, { href: `/expenses/${e.id}/edit`, label: `${e.description || "Ausgabe"} · ${formatDate(e.date)} · ${formatMoney(e.amountCents)}` });
   for (const s2 of linkedSchedules) linkLabel.set(`expense_schedule:${s2.id}`, { href: `/expenses/recurring/${s2.id}/edit`, label: `Abo: ${s2.description || "wiederkehrende Ausgabe"}` });
   for (const w of linkedWeg) linkLabel.set(`weg_abrechnung:${w.id}`, { href: `/weg-statements/${w.id}`, label: `WEG-Abrechnung ${w.year}` });
+  const [linkedCosts, linkedYears] = await Promise.all([
+    linkIds.vehicle_cost.size ? db.query.vehicleCosts.findMany({ where: and(inArray(vehicleCosts.id, [...linkIds.vehicle_cost]), isNull(vehicleCosts.deletedAt)), with: { vehicle: true } }) : [],
+    linkIds.vehicle_year.size ? db.query.vehicleYears.findMany({ where: inArray(vehicleYears.id, [...linkIds.vehicle_year]), with: { vehicle: true } }) : [],
+  ]);
+  for (const c of linkedCosts) linkLabel.set(`vehicle_cost:${c.id}`, { href: `/expenses/vehicles/${c.vehicleId}`, label: `Fahrzeugkosten ${c.vehicle.name}: ${c.description || formatDate(c.date)} · ${formatMoney(c.amountCents)}` });
+  for (const y of linkedYears) linkLabel.set(`vehicle_year:${y.id}`, { href: `/expenses/vehicles/${y.vehicleId}`, label: `Fahrzeug ${y.vehicle.name} ${y.year}` });
 
   const items = docs.map(({ links, ...d }) => ({
     ...d,

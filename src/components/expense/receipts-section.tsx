@@ -11,12 +11,12 @@ import { DocumentUploadForm } from "@/components/document/document-upload-form";
 import { linkDocumentAction, unlinkDocumentAction, type ReceiptPanelData, type ReceiptPanelDoc } from "@/server/actions/document-links";
 import type { DocumentTarget } from "@/server/actions/documents";
 
-type TargetType = "expense" | "expense_schedule" | "weg_abrechnung";
+type TargetType = "expense" | "expense_schedule" | "weg_abrechnung" | "vehicle_cost" | "vehicle_year";
 
 const selectClass =
   "border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]";
 
-const SOURCE_LABEL = { schedule: "vom Abo", weg: "aus der WEG-Abrechnung" } as const;
+const SOURCE_LABEL = { schedule: "vom Abo", weg: "aus der WEG-Abrechnung", vehicle: "vom Fahrzeug" } as const;
 
 // Belege einer Ausgabe, eines Abos oder einer WEG-Abrechnung: ansehen, lösen, vorhandene
 // Dokumente verknüpfen, neue hochladen (Ablageort wählbar, Vorgabe = Objekt der Buchung).

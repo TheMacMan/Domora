@@ -112,4 +112,18 @@ describe("buildDashboardTasks", () => {
     expect(t[0]!.href).toBe("/expenses?year=2025&beleg=missing");
     expect(t[1]!.title).toBe("1 Ausgabe 2026 ohne Beleg");
   });
+  it("Fahrzeug: fehlender km-Stand, Kosten ohne Beleg, häufige Fahrten", () => {
+    const t = buildDashboardTasks({
+      ...base,
+      provisionalVehicleYears: [{ vehicleId: "v1", label: "Leasing-Auto", year: 2025 }],
+      vehicleCostsMissingReceipts: [{ year: 2025, count: 14, cents: 1_421_950 }, { year: 2026, count: 0, cents: 0 }],
+      frequentDestinations: [{ propertyId: "p1", label: "Musterweg 1", year: 2025, count: 80 }],
+    });
+    expect(t.map((x) => [x.id, x.severity])).toEqual([
+      ["odometer-v1-2025", "warning"],
+      ["vehicle-receipts-2025", "warning"],
+      ["frequent-p1-2025", "info"],
+    ]);
+    expect(t[0]!.href).toBe("/expenses/vehicles/v1?year=2025");
+  });
 });

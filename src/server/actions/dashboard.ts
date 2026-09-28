@@ -2,9 +2,12 @@
 
 import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/db";
-import { expenses, leases, nkAbrechnungen } from "@/db/schema";
-import { missingReceiptsByYear, resolveReceipts } from "@/lib/expense-receipts";
-import { loadReceiptLinks } from "@/server/receipt-links";
+import { expenses, leases, nkAbrechnungen, properties, trips, vehicleCosts, vehicles } from "@/db/schema";
+import { RECEIPT_TASK_MIN_CENTS } from "@/lib/expense-receipts";
+import { frequentDestinations } from "@/lib/vehicle-rate";
+import { computeVehicleYearFor } from "@/server/trip-sync";
+import { missingReceiptsByYear } from "@/lib/expense-receipts";
+import { expenseReceipts, loadReceiptContext } from "@/server/receipt-links";
 import { requireUser } from "@/lib/auth";
 import { todayLocal } from "@/lib/dates";
 import { buildFixedRateTimeline } from "@/lib/loan-projection";
@@ -49,10 +52,37 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
       where: and(isNull(expenses.deletedAt), gte(expenses.date, `${year - 1}-01-01`), lte(expenses.date, today)),
     }),
   ]);
-  const receiptLinks = await loadReceiptLinks();
+  const receiptCtx = await loadReceiptContext();
+
+  // Fahrzeuge: vorläufige km-Sätze (abgeschlossene Jahre mit Fahrten), Kosten ohne Beleg, häufige Ziele
+  const [vehicleList, recentTrips, recentCosts, propertyList] = await Promise.all([
+    db.query.vehicles.findMany({ where: isNull(vehicles.deletedAt) }),
+    db.query.trips.findMany({ where: and(isNull(trips.deletedAt), gte(trips.date, `${year - 1}-01-01`)) }),
+    db.query.vehicleCosts.findMany({ where: and(isNull(vehicleCosts.deletedAt), gte(vehicleCosts.date, `${year - 1}-01-01`), lte(vehicleCosts.date, today)) }),
+    db.query.properties.findMany({ where: isNull(properties.deletedAt) }),
+  ]);
+  const provisionalVehicleYears: Array<{ vehicleId: string; label: string; year: number }> = [];
+  for (const v of vehicleList) {
+    for (const y of new Set(recentTrips.filter((t) => t.vehicleId === v.id).map((t) => +t.date.slice(0, 4)))) {
+      if (y >= year) continue;
+      const calc = await computeVehicleYearFor(v.id, y);
+      if (calc?.result.provisional) provisionalVehicleYears.push({ vehicleId: v.id, label: v.name, year: y });
+    }
+  }
+  const costMissing = new Map<number, { year: number; count: number; cents: number }>();
+  for (const c of recentCosts) {
+    if (Math.abs(c.amountCents) < RECEIPT_TASK_MIN_CENTS || (receiptCtx.byTarget.get(`vehicle_cost:${c.id}`)?.length ?? 0) > 0) continue;
+    const y = +c.date.slice(0, 4);
+    const cur = costMissing.get(y) ?? { year: y, count: 0, cents: 0 };
+    cur.count++;
+    cur.cents += c.amountCents;
+    costMissing.set(y, cur);
+  }
+  const propLabel = new Map(propertyList.map((p) => [p.id, `${p.street}, ${p.city}`]));
+  const frequent = frequentDestinations(recentTrips).map((f) => ({ ...f, label: propLabel.get(f.propertyId) ?? "" }));
 
   const missingReceipts = [...missingReceiptsByYear(
-    recentExpenses.map((e) => ({ ...e, receiptCount: resolveReceipts(e, receiptLinks).length })),
+    recentExpenses.map((e) => ({ ...e, receiptCount: expenseReceipts(e, receiptCtx).length })),
   )].map(([y, v]) => ({ year: y, ...v }));
 
   const missingDues: Array<{ leaseId: string; label: string; months: string[] }> = [];
@@ -89,5 +119,8 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
       })),
     missingNkStatements: [...missingNk.values()],
     missingReceipts,
+    provisionalVehicleYears,
+    vehicleCostsMissingReceipts: [...costMissing.values()],
+    frequentDestinations: frequent,
   });
 }

@@ -29,7 +29,14 @@ describe("Belege einer Ausgabe", () => {
     link("expense_schedule", "s1", "wirtschaftsplan"),
     link("weg_abrechnung", "w1", "jahresabrechnung"),
     link("expense", "e2", "wirtschaftsplan"), // auch direkt verknüpft → nur einmal
+    link("vehicle_year", "vy1", "fahrtenliste"),
+    link("vehicle_cost", "vc1", "leasingvertrag"),
   ]);
+
+  it("Fahrtkosten erben Belege von Fahrzeugjahr und Fahrzeugkosten", () => {
+    const r = resolveReceipts({ id: "t1", scheduleId: null, wegAbrechnungId: null }, byTarget, ["vehicle_year:vy1", "vehicle_cost:vc1", "vehicle_cost:ohne"]);
+    expect(r.map((x) => [x.doc.id, x.source])).toEqual([["fahrtenliste", "vehicle"], ["leasingvertrag", "vehicle"]]);
+  });
 
   it("eigene Belege", () => {
     const r = resolveReceipts({ id: "e1", scheduleId: null, wegAbrechnungId: null }, byTarget);

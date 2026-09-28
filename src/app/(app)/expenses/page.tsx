@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { SectionTabs } from "@/components/section-tabs";
+import { ExpenseTabs } from "@/components/expense/expense-tabs";
 import { getExpensesAction } from "@/server/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/money";
 import { formatDate, formatMonthShort } from "@/lib/dates";
 import { CATEGORY_LABELS, isOperatingCost } from "@/lib/expense";
 import { ExpenseFilters } from "@/components/expense/expense-filters";
-import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, AlertTriangle, Car } from "lucide-react";
 import { receiptStatus } from "@/lib/expense-receipts";
 import { ReceiptPreviewButton } from "@/components/expense/receipt-preview-button";
 
@@ -135,7 +135,9 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5">
-          {e.scheduleId ? (
+          {e.tripId ? (
+            <Car className="size-3 text-muted-foreground shrink-0" aria-label="Aus Fahrt berechnet" />
+          ) : e.scheduleId ? (
             <Repeat className="size-3 text-muted-foreground shrink-0" aria-label="Aus Abo generiert" />
           ) : e.isRecurring ? (
             <RefreshCw className="size-3 text-muted-foreground shrink-0" aria-label="Wiederkehrend" />
@@ -163,8 +165,8 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
       )}
       <td className="px-4 py-3 text-right tabular-nums font-medium">{formatMoney(e.amountCents)}</td>
       <td className="px-4 py-3 text-right">
-        <Button asChild variant="ghost" size="icon" title={e.scheduleId ? "Abo bearbeiten" : "Bearbeiten"}>
-          <Link href={e.scheduleId ? `/expenses/recurring/${e.scheduleId}/edit` : `/expenses/${e.id}/edit`}>
+        <Button asChild variant="ghost" size="icon" title={e.tripId ? "Fahrt bearbeiten" : e.scheduleId ? "Abo bearbeiten" : "Bearbeiten"}>
+          <Link href={e.tripId ? `/expenses/trips/${e.tripId}/edit` : e.scheduleId ? `/expenses/recurring/${e.scheduleId}/edit` : `/expenses/${e.id}/edit`}>
             {e.scheduleId ? <Repeat className="size-4" /> : <Pencil className="size-4" />}
           </Link>
         </Button>
@@ -197,10 +199,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
 
-      <SectionTabs tabs={[
-        { href: "/expenses", label: "Einzelbuchungen", active: true },
-        { href: "/expenses/recurring", label: "Abos (wiederkehrend)", active: false },
-      ]} />
+      <ExpenseTabs active="single" />
 
       {all.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground rounded-xl border border-dashed">
@@ -282,7 +281,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
                       {list.map((e) => (
                         <Link
                           key={e.id}
-                          href={`/expenses/${e.id}/edit`}
+                          href={e.tripId ? `/expenses/trips/${e.tripId}/edit` : `/expenses/${e.id}/edit`}
                           className="block rounded-lg border px-4 py-3 active:bg-muted/30 transition-colors"
                         >
                           <div className="flex items-start justify-between gap-3 mb-1">

@@ -3,17 +3,18 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { DOCUMENT_LINK_TARGETS, documentLinks, documents, expenses, expenseSchedules, wegAbrechnungen, type DocumentLinkTarget } from "@/db/schema";
+import { DOCUMENT_LINK_TARGETS, documentLinks, documents, expenses, expenseSchedules, trips, vehicleCosts, vehicleYears, wegAbrechnungen, type DocumentLinkTarget } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
-import { rankReceiptCandidates, resolveReceipts, tagForExpenseCategory, type ReceiptSource } from "@/lib/expense-receipts";
-import { createDocumentLink, loadReceiptLinks } from "@/server/receipt-links";
+import { rankReceiptCandidates, tagForExpenseCategory, type ReceiptSource } from "@/lib/expense-receipts";
+import { createDocumentLink, expenseReceipts, loadReceiptContext } from "@/server/receipt-links";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 const ID_RE = /^[a-z0-9]{10,40}$/;
 
 function revalidateLinkViews() {
+  revalidatePath("/expenses/vehicles", "layout");
   revalidatePath("/expenses", "layout");
   revalidatePath("/documents");
   revalidatePath("/weg-statements", "layout");
@@ -32,8 +33,17 @@ async function loadTarget(targetType: DocumentLinkTarget, targetId: string) {
     const s = await db.query.expenseSchedules.findFirst({ where: and(eq(expenseSchedules.id, targetId), isNull(expenseSchedules.deletedAt)) });
     return s && { propertyId: s.propertyId, date: `${s.startMonth}-01`, description: s.description, category: s.category, scheduleId: null, wegAbrechnungId: null, amountCents: s.amountCents };
   }
-  const w = await db.query.wegAbrechnungen.findFirst({ where: and(eq(wegAbrechnungen.id, targetId), isNull(wegAbrechnungen.deletedAt)) });
-  return w && { propertyId: w.propertyId, date: `${w.year}-12-31`, description: `WEG Jahresabrechnung ${w.year}`, category: "weg_saldo", scheduleId: null, wegAbrechnungId: null, amountCents: 1 };
+  if (targetType === "weg_abrechnung") {
+    const w = await db.query.wegAbrechnungen.findFirst({ where: and(eq(wegAbrechnungen.id, targetId), isNull(wegAbrechnungen.deletedAt)) });
+    return w && { propertyId: w.propertyId, date: `${w.year}-12-31`, description: `WEG Jahresabrechnung ${w.year}`, category: "weg_saldo", scheduleId: null, wegAbrechnungId: null, amountCents: 1 };
+  }
+  // Fahrzeugbelege: Ablage „Allgemein", Kategorie „Beleg"
+  if (targetType === "vehicle_cost") {
+    const c = await db.query.vehicleCosts.findFirst({ where: and(eq(vehicleCosts.id, targetId), isNull(vehicleCosts.deletedAt)) });
+    return c && { propertyId: null, date: c.date, description: c.description, category: "vehicle", scheduleId: null, wegAbrechnungId: null, amountCents: c.amountCents };
+  }
+  const y = await db.query.vehicleYears.findFirst({ where: eq(vehicleYears.id, targetId), with: { vehicle: true } });
+  return y && { propertyId: null, date: `${y.year}-12-31`, description: `Fahrtenliste Fahrzeug ${y.vehicle.name} ${y.year}`, category: "vehicle", scheduleId: null, wegAbrechnungId: null, amountCents: 1 };
 }
 
 export async function linkDocumentAction(documentId: string, targetType: DocumentLinkTarget, targetId: string): Promise<ActionResult> {
@@ -79,8 +89,8 @@ export async function getReceiptPanelAction(targetType: DocumentLinkTarget, targ
   const target = await loadTarget(targetType, targetId);
   if (!target) return null;
 
-  const [byTarget, allDocs] = await Promise.all([
-    loadReceiptLinks(),
+  const [ctx, allDocs] = await Promise.all([
+    loadReceiptContext(),
     db.query.documents.findMany({ where: isNull(documents.deletedAt), orderBy: (d, { desc }) => [desc(d.createdAt)] }),
   ]);
   const docById = new Map(allDocs.map((d) => [d.id, d]));
@@ -89,14 +99,23 @@ export async function getReceiptPanelAction(targetType: DocumentLinkTarget, targ
     return { id: d.id, filename: d.filename, title: d.title, mimeType: d.mimeType, year: d.year };
   };
 
-  const own = (byTarget.get(`${targetType}:${targetId}`) ?? []).map((l) => ({ linkId: l.linkId, doc: pick(l.doc.id) }));
+  // Fahrtkosten: Link auf das Fahrzeug der Fahrt
+  let tripVehicleHref = "/expenses/vehicles";
+  if (targetType === "expense") {
+    const tr = await db.query.trips.findFirst({ where: and(eq(trips.expenseId, targetId), isNull(trips.deletedAt)) });
+    if (tr) tripVehicleHref = `/expenses/vehicles/${tr.vehicleId}`;
+  }
+  const own = (ctx.byTarget.get(`${targetType}:${targetId}`) ?? []).map((l) => ({ linkId: l.linkId, doc: pick(l.doc.id) }));
   const inherited =
     targetType === "expense"
-      ? resolveReceipts({ id: targetId, scheduleId: target.scheduleId, wegAbrechnungId: target.wegAbrechnungId }, byTarget)
+      ? expenseReceipts({ id: targetId, scheduleId: target.scheduleId, wegAbrechnungId: target.wegAbrechnungId }, ctx)
           .filter((r) => r.source !== "own")
           .map((r) => ({
             source: r.source as Exclude<ReceiptSource, "own">,
-            href: r.source === "schedule" ? `/expenses/recurring/${target.scheduleId}/edit` : `/weg-statements/${target.wegAbrechnungId}`,
+            href:
+              r.source === "schedule" ? `/expenses/recurring/${target.scheduleId}/edit`
+              : r.source === "weg" ? `/weg-statements/${target.wegAbrechnungId}`
+              : tripVehicleHref,
             doc: pick(r.doc.id),
           }))
       : [];
@@ -104,7 +123,7 @@ export async function getReceiptPanelAction(targetType: DocumentLinkTarget, targ
   const linkedIds = new Set([...own, ...inherited].map((x) => x.doc.id));
   // Mieter-/Vertragsunterlagen sind keine Belege für Ausgaben
   const pool = allDocs.filter((d) => !linkedIds.has(d.id) && (d.entityType === "property" || d.entityType === "general"));
-  const tag = tagForExpenseCategory(target.category);
+  const tag = target.category === "vehicle" ? "Beleg" : tagForExpenseCategory(target.category);
   const suggestions = rankReceiptCandidates({ ...target, tag }, pool);
   const suggestionIds = new Set(suggestions.map((d) => d.id));
   const year = parseInt(target.date.slice(0, 4), 10);

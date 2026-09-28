@@ -313,7 +313,7 @@ export const documents = sqliteTable("documents", {
 // Belegverknüpfung: Dokument ↔ Ausgabe / Abo / WEG-Abrechnung (n:m). Das Dokument behält
 // seinen Ablageort. Belege am Abo bzw. an der WEG-Abrechnung gelten für die daraus
 // erzeugten Ausgaben mit. Lösen = Soft-Delete der Verknüpfung.
-export const DOCUMENT_LINK_TARGETS = ["expense", "expense_schedule", "weg_abrechnung"] as const;
+export const DOCUMENT_LINK_TARGETS = ["expense", "expense_schedule", "weg_abrechnung", "vehicle_cost", "vehicle_year"] as const;
 export type DocumentLinkTarget = (typeof DOCUMENT_LINK_TARGETS)[number];
 
 export const documentLinks = sqliteTable(
@@ -330,6 +330,102 @@ export const documentLinks = sqliteTable(
   },
   (t) => [index("document_links_target_idx").on(t.targetType, t.targetId), index("document_links_document_idx").on(t.documentId)],
 );
+
+// ── Fahrzeuge & Fahrten ──────────────────────────────────────────────────────
+// Fahrzeugkosten sind keine Werbungskosten; sie ergeben nur den km-Satz. Absetzbar
+// sind die Fahrten zu den Mietobjekten (erzeugte Ausgaben, siehe expenses.tripId).
+export const VEHICLE_FUEL_TYPES = ["combustion", "electric", "hybrid"] as const;
+export const VEHICLE_OWNERSHIP = ["lease", "purchase", "financed"] as const;
+
+export const vehicles = sqliteTable("vehicles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  plate: text("plate"),
+  fuelType: text("fuel_type", { enum: VEHICLE_FUEL_TYPES }).notNull().default("combustion"),
+  ownership: text("ownership", { enum: VEHICLE_OWNERSHIP }).notNull().default("purchase"),
+  inUseFrom: text("in_use_from").notNull(), // YYYY-MM-DD
+  inUseTo: text("in_use_to"),               // YYYY-MM-DD, null = in Nutzung
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+export const ODOMETER_KINDS = ["year_start", "year_end", "handover", "return", "other"] as const;
+
+export const vehicleOdometer = sqliteTable("vehicle_odometer", {
+  id: text("id").primaryKey(),
+  vehicleId: text("vehicle_id").notNull().references(() => vehicles.id),
+  date: text("date").notNull(),
+  km: integer("km").notNull(),
+  kind: text("kind", { enum: ODOMETER_KINDS }).notNull().default("other"),
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+export const VEHICLE_COST_CATEGORIES = [
+  "leasing", "leasing_special", "depreciation", "insurance", "tax", "energy", "maintenance", "tires", "other",
+] as const;
+export type VehicleCostCategory = (typeof VEHICLE_COST_CATEGORIES)[number];
+
+export const vehicleCosts = sqliteTable("vehicle_costs", {
+  id: text("id").primaryKey(),
+  vehicleId: text("vehicle_id").notNull().references(() => vehicles.id),
+  date: text("date").notNull(),
+  category: text("category", { enum: VEHICLE_COST_CATEGORIES }).notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  description: text("description"),
+  // Optional: Leistungszeitraum (Sonderzahlung, Jahresversicherung) → anteilige Verteilung
+  servicePeriodStart: text("service_period_start"),
+  servicePeriodEnd: text("service_period_end"),
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+export const VEHICLE_RATE_METHODS = ["actual", "flat"] as const;
+
+// Einstellungen je Fahrzeug und Jahr: Methode und Übergangs-km bis der km-Stand vorliegt
+export const vehicleYears = sqliteTable(
+  "vehicle_years",
+  {
+    id: text("id").primaryKey(),
+    vehicleId: text("vehicle_id").notNull().references(() => vehicles.id),
+    year: integer("year").notNull(),
+    method: text("method", { enum: VEHICLE_RATE_METHODS }).notNull().default("actual"),
+    estimatedKm: integer("estimated_km"), // vorläufige Gesamt-km, solange km-Stände fehlen
+    notes: text("notes"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  },
+  (t) => [uniqueIndex("vehicle_years_vehicle_year_idx").on(t.vehicleId, t.year)],
+);
+
+export const tripRoutes = sqliteTable("trip_routes", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  route: text("route").notNull(),
+  km: real("km").notNull(), // Hin- und Rückfahrt
+  propertyId: text("property_id").references(() => properties.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+export const trips = sqliteTable("trips", {
+  id: text("id").primaryKey(),
+  vehicleId: text("vehicle_id").notNull().references(() => vehicles.id),
+  propertyId: text("property_id").notNull().references(() => properties.id),
+  date: text("date").notNull(),
+  route: text("route").notNull(),
+  km: real("km").notNull(), // Hin- und Rückfahrt
+  purpose: text("purpose").notNull(),
+  expenseId: text("expense_id"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
 
 export const LOAN_TYPES = ["annuity", "interest_only", "bauspar"] as const;
 export type LoanType = (typeof LOAN_TYPES)[number];
@@ -475,6 +571,9 @@ export const expenses = sqliteTable("expenses", {
   wegAbrechnungId: text("weg_abrechnung_id"),
   // Verknüpfung mit einem ExpenseSchedule (monatlich wiederkehrend), wenn generiert.
   scheduleId: text("schedule_id"),
+  // Aus einer Fahrt erzeugt (Fahrtkosten). Betrag wird aus dem km-Satz berechnet,
+  // die Buchung ist gesperrt und fließt nicht in den Cashflow (kein Geld vom Mietkonto).
+  tripId: text("trip_id"),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -545,6 +644,29 @@ export const loanInterestYearsRelations = relations(loanInterestYears, ({ one })
 export const expensesRelations = relations(expenses, ({ one }) => ({
   property: one(properties, { fields: [expenses.propertyId], references: [properties.id] }),
   schedule: one(expenseSchedules, { fields: [expenses.scheduleId], references: [expenseSchedules.id] }),
+}));
+
+export const vehiclesRelations = relations(vehicles, ({ many }) => ({
+  odometer: many(vehicleOdometer),
+  costs: many(vehicleCosts),
+  years: many(vehicleYears),
+  trips: many(trips),
+}));
+export const vehicleOdometerRelations = relations(vehicleOdometer, ({ one }) => ({
+  vehicle: one(vehicles, { fields: [vehicleOdometer.vehicleId], references: [vehicles.id] }),
+}));
+export const vehicleCostsRelations = relations(vehicleCosts, ({ one }) => ({
+  vehicle: one(vehicles, { fields: [vehicleCosts.vehicleId], references: [vehicles.id] }),
+}));
+export const vehicleYearsRelations = relations(vehicleYears, ({ one }) => ({
+  vehicle: one(vehicles, { fields: [vehicleYears.vehicleId], references: [vehicles.id] }),
+}));
+export const tripsRelations = relations(trips, ({ one }) => ({
+  vehicle: one(vehicles, { fields: [trips.vehicleId], references: [vehicles.id] }),
+  property: one(properties, { fields: [trips.propertyId], references: [properties.id] }),
+}));
+export const tripRoutesRelations = relations(tripRoutes, ({ one }) => ({
+  property: one(properties, { fields: [tripRoutes.propertyId], references: [properties.id] }),
 }));
 
 export const documentsRelations = relations(documents, ({ many }) => ({
