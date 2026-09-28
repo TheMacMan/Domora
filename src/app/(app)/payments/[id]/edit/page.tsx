@@ -4,8 +4,15 @@ import { PaymentEditForm } from "@/components/payment/payment-edit-form";
 
 export const metadata = { title: "Zahlung bearbeiten – Domora" };
 
-export default async function EditPaymentPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditPaymentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ back?: string }>;
+}) {
   const { id } = await params;
+  const { back } = await searchParams;
   const payment = await getPaymentAction(id);
 
   if (!payment || payment.deletedAt) notFound();
@@ -23,7 +30,8 @@ export default async function EditPaymentPage({ params }: { params: Promise<{ id
         sollCents={payment.rentCents + (payment.serviceChargesCents ?? 0)}
         receipts={payment.receipts.map((r) => ({ id: r.id, receivedAt: r.receivedAt, amountCents: r.amountCents, note: r.note }))}
         notes={payment.notes ?? ""}
-        returnTo={`/payments?month=${payment.dueDate.slice(0, 7)}`}
+        // Rücksprung: zur aufrufenden Zahlungsansicht (z. B. Jahresübersicht), sonst zum Monat
+        returnTo={back && /^\/payments(\/overview)?(\?[\w=&%-]*)?$/.test(back) ? back : `/payments?month=${payment.dueDate.slice(0, 7)}`}
       />
     </div>
   );

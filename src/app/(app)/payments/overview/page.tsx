@@ -32,7 +32,7 @@ function Cell({ cell, year }: { cell: MatrixCell; year: number }) {
   return (
     <td className="px-0.5 py-1 text-center">
       {cell.paymentId ? (
-        <Link href={`/payments/${cell.paymentId}`} title={cellTitle(cell, year)} aria-label={cellTitle(cell, year)} className="inline-block">
+        <Link href={`/payments/${cell.paymentId}/edit?back=${encodeURIComponent(`/payments/overview?year=${year}`)}`} title={cellTitle(cell, year)} aria-label={cellTitle(cell, year)} className="inline-block">
           {box}
         </Link>
       ) : cell.status === "missing" ? (
