@@ -36,7 +36,7 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
         <CopyValue value={String(entry.euro)} display={`${euroDisplay(entry.euro)} €`} />
       </div>
       {entry.items && entry.items.length > 0 && (
-        <details className="mt-2 ml-12 text-xs">
+        <details className="mt-2 text-xs sm:ml-12">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
             {entry.items.length} Einzelposten anzeigen
             {(() => {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createTripRouteAction, deleteTripRouteAction } from "@/server/actions/vehicles";
 
-const selectClass = "border-input h-8 rounded-md border bg-transparent px-2 text-xs";
+const selectClass = "border-input h-10 rounded-md border bg-transparent px-2 sm:h-8 sm:text-xs";
 
 type Route = { id: string; name: string; route: string; km: number; propertyId: string | null };
 
@@ -46,7 +46,7 @@ export function RouteManager({ routes, properties }: { routes: Route[]; properti
                 <p className="font-medium">{r.name}</p>
                 <p className="truncate text-xs text-muted-foreground">{r.route} · {String(r.km).replace(".", ",")} km</p>
               </div>
-              <button type="button" onClick={() => remove(r.id)} disabled={isPending} className="size-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive" aria-label={`${r.name} entfernen`}>
+              <button type="button" onClick={() => remove(r.id)} disabled={isPending} className="size-10 sm:size-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive" aria-label={`${r.name} entfernen`}>
                 <X className="size-4" />
               </button>
             </li>
@@ -54,13 +54,13 @@ export function RouteManager({ routes, properties }: { routes: Route[]; properti
         </ul>
       )}
       <form onSubmit={add} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_2fr_5rem_1fr_auto]">
-        <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name, z. B. Alzenau" className="h-8 text-xs" required />
-        <Input value={f.route} onChange={(e) => setF({ ...f, route: e.target.value })} placeholder="Strecke, z. B. Wohnort → Objekt → zurück" className="h-8 text-xs" required />
-        <Input value={f.km} onChange={(e) => setF({ ...f, km: e.target.value })} placeholder="km" inputMode="decimal" className="h-8 text-xs" required />
+        <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Name, z. B. Alzenau" className="h-10 sm:h-8 sm:text-xs" required />
+        <Input value={f.route} onChange={(e) => setF({ ...f, route: e.target.value })} placeholder="Strecke, z. B. Wohnort → Objekt → zurück" className="h-10 sm:h-8 sm:text-xs" required />
+        <Input value={f.km} onChange={(e) => setF({ ...f, km: e.target.value })} placeholder="km" inputMode="decimal" className="h-10 sm:h-8 sm:text-xs" required />
         <select className={selectClass} value={f.propertyId} onChange={(e) => setF({ ...f, propertyId: e.target.value })} aria-label="Objekt">
           {properties.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
-        <Button type="submit" size="sm" variant="outline" className="h-8" disabled={isPending}>
+        <Button type="submit" size="sm" variant="outline" className="h-10 sm:h-8" disabled={isPending}>
           <Plus className="size-4" />
           Strecke
         </Button>

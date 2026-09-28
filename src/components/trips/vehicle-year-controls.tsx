@@ -53,7 +53,7 @@ export function VehicleYearControls({
             type="button"
             disabled={isPending || m === method}
             onClick={() => save({ method: m, estimatedKm: km ? Number(km) : null })}
-            className={`rounded px-2 py-1 ${m === method ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}
+            className={`rounded px-2.5 py-2 sm:py-1 ${m === method ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"}`}
           >
             {m === "actual" ? "Individueller Satz" : "Pauschale 0,30 €"}
           </button>
@@ -68,19 +68,19 @@ export function VehicleYearControls({
           }}
         >
           <label htmlFor={`est-${vehicleId}-${year}`} className="text-muted-foreground">Schätzung km:</label>
-          <Input id={`est-${vehicleId}-${year}`} inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value.replace(/\D/g, ""))} className="h-7 w-24 text-xs" />
-          <Button type="submit" size="sm" variant="outline" className="h-7" disabled={isPending}>OK</Button>
+          <Input id={`est-${vehicleId}-${year}`} inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value.replace(/\D/g, ""))} className="h-9 w-24 sm:h-7 sm:text-xs" />
+          <Button type="submit" size="sm" variant="outline" className="h-9 sm:h-7" disabled={isPending}>OK</Button>
         </form>
       )}
       {hasTrips && (
         <>
-          <Button asChild size="sm" variant="outline" className="h-7">
+          <Button asChild size="sm" variant="outline" className="h-9 sm:h-7">
             <a href={`/api/trips/pdf?vehicleId=${vehicleId}&year=${year}`}>
               <FileDown className="size-3.5" />
               Fahrtenliste
             </a>
           </Button>
-          <Button type="button" size="sm" variant="outline" className="h-7" disabled={isPending} onClick={saveLog} title="PDF erzeugen, unter Dokumente ablegen und als Beleg für alle Fahrten des Jahres verknüpfen">
+          <Button type="button" size="sm" variant="outline" className="h-9 sm:h-7" disabled={isPending} onClick={saveLog} title="PDF erzeugen, unter Dokumente ablegen und als Beleg für alle Fahrten des Jahres verknüpfen">
             <FilePlus2 className="size-3.5" />
             Als Beleg ablegen
           </Button>

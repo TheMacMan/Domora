@@ -47,7 +47,7 @@ export function OdometerSection({ vehicleId, readings }: { vehicleId: string; re
               <span className="w-24 tabular-nums text-muted-foreground">{formatDate(r.date)}</span>
               <span className="w-24 font-medium tabular-nums">{formatKm(r.km)} km</span>
               <span className="flex-1 text-xs text-muted-foreground">{ODOMETER_LABELS[r.kind]}{r.note ? ` · ${r.note}` : ""}</span>
-              <button type="button" onClick={() => remove(r.id)} disabled={isPending} className="size-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive" aria-label="km-Stand entfernen">
+              <button type="button" onClick={() => remove(r.id)} disabled={isPending} className="size-10 sm:size-8 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive" aria-label="km-Stand entfernen">
                 <X className="size-4" />
               </button>
             </li>
@@ -55,13 +55,13 @@ export function OdometerSection({ vehicleId, readings }: { vehicleId: string; re
         </ul>
       )}
       <form onSubmit={add} className="grid grid-cols-2 gap-2 sm:grid-cols-[9rem_8rem_9rem_1fr_auto]">
-        <Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required className="h-8 text-xs" aria-label="Datum" />
-        <Input inputMode="numeric" value={f.km} onChange={(e) => setF({ ...f, km: e.target.value })} placeholder="km-Stand" required className="h-8 text-xs" />
-        <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as Reading["kind"] })} className="h-8 rounded-md border border-input bg-transparent px-2 text-xs" aria-label="Art">
+        <Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required className="h-10 sm:h-8 sm:text-xs" aria-label="Datum" />
+        <Input inputMode="numeric" value={f.km} onChange={(e) => setF({ ...f, km: e.target.value })} placeholder="km-Stand" required className="h-10 sm:h-8 sm:text-xs" />
+        <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as Reading["kind"] })} className="h-10 rounded-md border border-input bg-transparent px-2 sm:h-8 sm:text-xs" aria-label="Art">
           {Object.entries(ODOMETER_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
-        <Input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Nachweis, z. B. Foto Tacho" className="h-8 text-xs" />
-        <Button type="submit" size="sm" variant="outline" className="h-8" disabled={isPending}>Hinzufügen</Button>
+        <Input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="Nachweis, z. B. Foto Tacho" className="h-10 sm:h-8 sm:text-xs" />
+        <Button type="submit" size="sm" variant="outline" className="h-10 sm:h-8" disabled={isPending}>Hinzufügen</Button>
       </form>
       <p className="text-xs text-muted-foreground">
         Maßgeblich ist der Stand am 01.01. und 31.12. (bzw. bei Übernahme/Rückgabe), jeweils ± 14 Tage. Tachofotos als Beleg beim Jahr hochladen.

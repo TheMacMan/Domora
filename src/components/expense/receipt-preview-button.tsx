@@ -40,7 +40,7 @@ export function ReceiptPreviewButton({ docs }: { docs: Doc[] }) {
       <button
         type="button"
         onClick={onClick}
-        className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="-my-1.5 inline-flex min-h-8 min-w-8 items-center justify-center gap-0.5 rounded px-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground sm:my-0 sm:min-h-0 sm:min-w-0 sm:py-0.5"
         aria-label={docs.length === 1 ? `Beleg ansehen: ${name(docs[0]!)}` : `${docs.length} Belege ansehen`}
         title={docs.length === 1 ? `Beleg ansehen: ${name(docs[0]!)}` : `${docs.length} Belege ansehen`}
       >
@@ -48,7 +48,7 @@ export function ReceiptPreviewButton({ docs }: { docs: Doc[] }) {
         {docs.length > 1 && docs.length}
       </button>
       {menu && (
-        <span className="absolute left-0 top-full z-40 mt-1 flex w-72 max-w-[80vw] flex-col rounded-lg border bg-popover p-1 shadow-lg">
+        <span className="fixed inset-x-3 bottom-3 z-40 flex flex-col rounded-xl border bg-popover p-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] shadow-xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-1 sm:w-72 sm:rounded-lg sm:pb-1">
           {docs.map((d) => (
             <button
               key={d.id}
@@ -59,7 +59,7 @@ export function ReceiptPreviewButton({ docs }: { docs: Doc[] }) {
                 setMenu(false);
                 setPreview(d);
               }}
-              className="truncate rounded px-2 py-1.5 text-left text-xs hover:bg-muted"
+              className="truncate rounded px-3 py-3 text-left text-sm hover:bg-muted sm:px-2 sm:py-1.5 sm:text-xs"
             >
               {name(d)}
             </button>

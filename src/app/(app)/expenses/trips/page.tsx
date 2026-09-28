@@ -117,7 +117,7 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
       )}
 
       <section className="overflow-hidden rounded-xl border bg-card">
-        <div className="flex items-center justify-between gap-3 bg-muted/30 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-muted/30 px-4 py-3">
           <span className="font-semibold">{data.trips.length} Fahrten {year}</span>
           <span className="tabular-nums text-sm">{formatKm(totalKm)} km · <strong>{formatMoney(totalCents)}</strong></span>
         </div>
@@ -126,20 +126,26 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
         ) : (
           <ul className="divide-y">
             {data.trips.map((t) => (
-              <li key={t.id} className="flex items-start gap-3 px-4 py-2.5 text-sm">
-                <span className="w-20 shrink-0 tabular-nums text-muted-foreground">{formatDate(t.date)}</span>
+              <li key={t.id} className="flex items-start gap-2 px-4 py-2.5 text-sm sm:gap-3">
+                <span className="hidden w-20 shrink-0 tabular-nums text-muted-foreground sm:block">{formatDate(t.date)}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{t.purpose}</p>
-                  <p className="truncate text-xs text-muted-foreground">{t.property} · {t.route} · {t.vehicle}</p>
+                  <p className="font-medium">
+                    <span className="font-normal tabular-nums text-muted-foreground sm:hidden">{formatDate(t.date)} · </span>
+                    {t.purpose}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    <span className="sm:hidden">{formatKm(t.km)} km · </span>
+                    {t.property} · {t.route} · {t.vehicle}
+                  </p>
                 </div>
-                <span className="shrink-0 tabular-nums text-muted-foreground">{formatKm(t.km)} km</span>
-                <span className="w-20 shrink-0 text-right font-medium tabular-nums">{formatMoney(t.cents)}</span>
-                <div className="flex shrink-0">
+                <span className="hidden shrink-0 tabular-nums text-muted-foreground sm:inline">{formatKm(t.km)} km</span>
+                <span className="shrink-0 text-right font-medium tabular-nums sm:w-20">{formatMoney(t.cents)}</span>
+                <div className="-my-1 flex shrink-0">
                   <Button asChild variant="ghost" size="iconSm" title="Wiederholen">
-                    <Link href={`/expenses/trips/new?from=${t.id}`}><Copy className="size-3.5" /></Link>
+                    <Link href={`/expenses/trips/new?from=${t.id}`} aria-label={`Fahrt vom ${formatDate(t.date)} wiederholen`}><Copy className="size-4 sm:size-3.5" /></Link>
                   </Button>
                   <Button asChild variant="ghost" size="iconSm" title="Bearbeiten">
-                    <Link href={`/expenses/trips/${t.id}/edit`}><Pencil className="size-3.5" /></Link>
+                    <Link href={`/expenses/trips/${t.id}/edit`} aria-label={`Fahrt vom ${formatDate(t.date)} bearbeiten`}><Pencil className="size-4 sm:size-3.5" /></Link>
                   </Button>
                 </div>
               </li>

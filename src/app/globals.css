@@ -111,3 +111,13 @@
     user-select: auto;
   }
 }
+
+/* ── iPhone/iPad: Safari zoomt beim Antippen in Felder mit Schrift < 16px ──
+   Auf Touch-Geräten daher alle Eingabefelder mit mind. 16px (Desktop bleibt kompakt). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
