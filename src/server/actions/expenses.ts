@@ -79,6 +79,9 @@ export async function updateExpenseAction(id: string, data: ExpenseFormInput): P
   if (before.tripId) {
     return { ok: false, error: "Diese Buchung wird aus einer Fahrt berechnet. Bitte die Fahrt bearbeiten." };
   }
+  if (before.electricitySettlementId) {
+    return { ok: false, error: "Diese Buchung stammt aus einer Zwischenzähler-Abrechnung. Bitte dort ändern." };
+  }
 
   await db.update(expenses).set({ ...toDb(parsed.data), updatedAt: new Date() }).where(eq(expenses.id, id));
 
@@ -98,6 +101,9 @@ export async function deleteExpenseAction(id: string): Promise<ActionResult> {
   }
   if (expense.tripId) {
     return { ok: false, error: "Diese Buchung gehört zu einer Fahrt und kann nur über die Fahrt gelöscht werden." };
+  }
+  if (expense.electricitySettlementId) {
+    return { ok: false, error: "Diese Buchung stammt aus einer Zwischenzähler-Abrechnung und kann nur dort entfernt werden." };
   }
 
   await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, id));

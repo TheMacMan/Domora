@@ -8,7 +8,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { documents, expenses, expenseSchedules, leases, properties, tenants, vehicleCosts, vehicleYears, wegAbrechnungen } from "@/db/schema";
+import { documents, expenses, expenseSchedules, leases, properties, tenants, vehicleCosts, vehicleYears, wegAbrechnungen, meterReadings, supplyPrices } from "@/db/schema";
 import { createDocumentLink, linkTargetExists } from "@/server/receipt-links";
 import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
@@ -236,7 +236,7 @@ db.query.documents.findMany({
   }
   label.set(`general:${GENERAL_ENTITY_ID}`, "Allgemein");
   // Verknüpfte Buchungen je Dokument (Ausgaben, Abos, WEG-Abrechnungen) mit Anzeige-Label
-  const linkIds = { expense: new Set<string>(), expense_schedule: new Set<string>(), weg_abrechnung: new Set<string>(), vehicle_cost: new Set<string>(), vehicle_year: new Set<string>() };
+  const linkIds = { expense: new Set<string>(), expense_schedule: new Set<string>(), weg_abrechnung: new Set<string>(), vehicle_cost: new Set<string>(), vehicle_year: new Set<string>(), meter_reading: new Set<string>(), supply_price: new Set<string>() };
   for (const d of docs) for (const l of d.links) linkIds[l.targetType].add(l.targetId);
   const [linkedExpenses, linkedSchedules, linkedWeg] = await Promise.all([
     linkIds.expense.size ? db.query.expenses.findMany({ where: and(inArray(expenses.id, [...linkIds.expense]), isNull(expenses.deletedAt)) }) : [],
@@ -253,6 +253,12 @@ db.query.documents.findMany({
   ]);
   for (const c of linkedCosts) linkLabel.set(`vehicle_cost:${c.id}`, { href: `/expenses/vehicles/${c.vehicleId}`, label: `Fahrzeugkosten ${c.vehicle.name}: ${c.description || formatDate(c.date)} · ${formatMoney(c.amountCents)}` });
   for (const y of linkedYears) linkLabel.set(`vehicle_year:${y.id}`, { href: `/expenses/vehicles/${y.vehicleId}`, label: `Fahrzeug ${y.vehicle.name} ${y.year}` });
+  const [linkedReadings, linkedPrices] = await Promise.all([
+    linkIds.meter_reading.size ? db.query.meterReadings.findMany({ where: inArray(meterReadings.id, [...linkIds.meter_reading]), with: { meter: true } }) : [],
+    linkIds.supply_price.size ? db.query.supplyPrices.findMany({ where: inArray(supplyPrices.id, [...linkIds.supply_price]), with: { lease: { with: { unit: true } } } }) : [],
+  ]);
+  for (const r of linkedReadings) linkLabel.set(`meter_reading:${r.id}`, { href: `/properties/${r.meter.propertyId}/meters`, label: `Zählerstand ${r.meter.name} ${formatDate(r.date)}` });
+  for (const p of linkedPrices) linkLabel.set(`supply_price:${p.id}`, { href: `/properties/${p.lease.unit.propertyId}/meters`, label: `Strompreis ${p.lease.unit.name} ab ${formatDate(p.validFrom)}` });
 
   const items = docs.map(({ links, ...d }) => ({
     ...d,

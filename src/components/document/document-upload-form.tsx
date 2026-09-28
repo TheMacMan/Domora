@@ -29,7 +29,7 @@ type Props = {
   // Optional: Zuordnung im Formular wählbar (Dokumentenseite)
   targets?: DocumentTarget[];
   // Optional: hochgeladene Dateien direkt als Beleg verknüpfen (Ausgabe, Abo, WEG-Abrechnung)
-  linkTarget?: { type: "expense" | "expense_schedule" | "weg_abrechnung" | "vehicle_cost" | "vehicle_year"; id: string };
+  linkTarget?: { type: "expense" | "expense_schedule" | "weg_abrechnung" | "vehicle_cost" | "vehicle_year" | "meter_reading" | "supply_price"; id: string };
   defaultYear?: number;
   defaultTag?: string;
   label?: string;

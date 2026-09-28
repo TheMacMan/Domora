@@ -164,7 +164,7 @@ export async function getElsterAnlageVAction(propertyId: string, year: number): 
   let nkAbrechnungCents = 0;
   for (const r of propertyReceipts) {
     if (r.amountCents === 0) continue;
-    if (r.kind === "nk_settlement") {
+    if (r.kind === "nk_settlement" || r.kind === "utility") {
       nkAbrechnungCents += r.amountCents;
       continue;
     }

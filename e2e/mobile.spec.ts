@@ -19,6 +19,7 @@ function ids() {
     weg: one("select id from weg_abrechnungen where deleted_at is null limit 1"),
     payment: one("select id from payments where deleted_at is null order by due_date desc limit 1"),
     loan: one("select id from loans where deleted_at is null limit 1"),
+    meterProperty: one("select property_id as id from meters where deleted_at is null limit 1"),
   };
   db.close();
   return r;
@@ -30,6 +31,7 @@ const PAGES: Array<[string, string | undefined]> = [
   ["dashboard", "/dashboard"],
   ["objekte", "/properties"],
   ["objekt", I.property && `/properties/${I.property}`],
+  ["zaehler", I.meterProperty && `/properties/${I.meterProperty}/meters`],
   ["mieter", "/tenants"],
   ["mieter-detail", I.tenant && `/tenants/${I.tenant}`],
   ["vertraege", "/leases"],

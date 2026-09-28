@@ -184,7 +184,8 @@ export const payments = sqliteTable("payments", {
 // Zahlungseingänge (Zuflüsse) — jede Überweisung mit eigenem Datum und Betrag.
 // Maßgeblich für die Anlage V (Zuflussprinzip, § 11 EStG). payments.paidCents/paidAt
 // bleiben als automatisch gepflegte Summe (Σ Eingänge / letztes Eingangsdatum).
-export const RECEIPT_KINDS = ["rent", "nk_settlement"] as const;
+// "utility" = Zahlung eines Mieters für Verbrauch über Zwischenzähler (z. B. Strom Einliegerwohnung)
+export const RECEIPT_KINDS = ["rent", "nk_settlement", "utility"] as const;
 export type ReceiptKind = (typeof RECEIPT_KINDS)[number];
 
 export const paymentReceipts = sqliteTable("payment_receipts", {
@@ -313,7 +314,7 @@ export const documents = sqliteTable("documents", {
 // Belegverknüpfung: Dokument ↔ Ausgabe / Abo / WEG-Abrechnung (n:m). Das Dokument behält
 // seinen Ablageort. Belege am Abo bzw. an der WEG-Abrechnung gelten für die daraus
 // erzeugten Ausgaben mit. Lösen = Soft-Delete der Verknüpfung.
-export const DOCUMENT_LINK_TARGETS = ["expense", "expense_schedule", "weg_abrechnung", "vehicle_cost", "vehicle_year"] as const;
+export const DOCUMENT_LINK_TARGETS = ["expense", "expense_schedule", "weg_abrechnung", "vehicle_cost", "vehicle_year", "meter_reading", "supply_price"] as const;
 export type DocumentLinkTarget = (typeof DOCUMENT_LINK_TARGETS)[number];
 
 export const documentLinks = sqliteTable(
@@ -424,6 +425,77 @@ export const trips = sqliteTable("trips", {
   expenseId: text("expense_id"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+// ── Zwischenzähler (Strom über den Vertrag eines Mieters) ─────────────────────
+// Ein Zwischenzähler hängt am Stromvertrag einer Wohnung (hostUnitId): Der dortige Mieter zahlt
+// den Verbrauch und bekommt ihn erstattet (Heizung, Allgemeinstrom) bzw. der Verbraucher-Mieter
+// (purpose "unit", unitId) wird damit belastet. kind "estimate": ohne Zähler, geschätzt (kWh/Jahr).
+export const METER_KINDS = ["meter", "estimate"] as const;
+export const METER_PURPOSES = ["heating", "common", "unit"] as const;
+export type MeterPurpose = (typeof METER_PURPOSES)[number];
+
+export const meters = sqliteTable("meters", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id").notNull().references(() => properties.id),
+  name: text("name").notNull(),
+  meterNumber: text("meter_number"),
+  kind: text("kind", { enum: METER_KINDS }).notNull().default("meter"),
+  purpose: text("purpose", { enum: METER_PURPOSES }).notNull(),
+  hostUnitId: text("host_unit_id").notNull().references(() => units.id),   // über wessen Stromvertrag
+  unitId: text("unit_id").references(() => units.id),                      // Verbraucher bei purpose "unit"
+  estimateKwhPerYear: real("estimate_kwh_per_year"),
+  estimateNote: text("estimate_note"),
+  calibrationUntil: text("calibration_until"), // Eichfrist (YYYY-MM-DD)
+  notes: text("notes"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+export const METER_READING_REASONS = ["year_end", "move_out", "move_in", "price_change", "interim"] as const;
+
+export const meterReadings = sqliteTable("meter_readings", {
+  id: text("id").primaryKey(),
+  meterId: text("meter_id").notNull().references(() => meters.id),
+  date: text("date").notNull(),
+  value: real("value").notNull(), // kWh-Zählerstand
+  reason: text("reason", { enum: METER_READING_REASONS }).notNull().default("interim"),
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+// Arbeitspreis aus dem Stromvertrag des Mieters (brutto, ohne Grundpreis), gültig ab
+export const supplyPrices = sqliteTable("supply_prices", {
+  id: text("id").primaryKey(),
+  leaseId: text("lease_id").notNull().references(() => leases.id),
+  validFrom: text("valid_from").notNull(),
+  ctPerKwh: real("ct_per_kwh").notNull(),
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+});
+
+// Abrechnung eines Zeitraums: "refund" = Erstattung an den Mieter mit dem Stromvertrag,
+// "charge" = Rechnung an den Verbraucher-Mieter. Buchung erst bei Zahlung (Zufluss/Abfluss).
+export const ELECTRICITY_SETTLEMENT_DIRECTIONS = ["refund", "charge"] as const;
+export const electricitySettlements = sqliteTable("electricity_settlements", {
+  id: text("id").primaryKey(),
+  propertyId: text("property_id").notNull().references(() => properties.id),
+  direction: text("direction", { enum: ELECTRICITY_SETTLEMENT_DIRECTIONS }).notNull(),
+  leaseId: text("lease_id").notNull().references(() => leases.id), // Empfänger der Erstattung bzw. Rechnung
+  periodStart: text("period_start").notNull(),
+  periodEnd: text("period_end").notNull(),
+  kwh: real("kwh").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  linesJson: text("lines_json").notNull(), // Berechnung je Zähler/Preisabschnitt
+  number: text("number").notNull(),        // z. B. STROM-2026-001
+  documentId: text("document_id"),         // PDF
+  status: text("status", { enum: ["open", "paid"] }).notNull().default("open"),
+  paidAt: text("paid_at"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
@@ -574,6 +646,10 @@ export const expenses = sqliteTable("expenses", {
   // Aus einer Fahrt erzeugt (Fahrtkosten). Betrag wird aus dem km-Satz berechnet,
   // die Buchung ist gesperrt und fließt nicht in den Cashflow (kein Geld vom Mietkonto).
   tripId: text("trip_id"),
+  // Aus einer Zwischenzähler-Abrechnung erzeugt (gesperrt)
+  electricitySettlementId: text("electricity_settlement_id"),
+  // Nicht in die NK-Abrechnung übernehmen (z. B. Strom einer Wohnung, direkt mit deren Mieter abgerechnet)
+  nkExclude: integer("nk_exclude", { mode: "boolean" }).notNull().default(false),
   notes: text("notes"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -667,6 +743,22 @@ export const tripsRelations = relations(trips, ({ one }) => ({
 }));
 export const tripRoutesRelations = relations(tripRoutes, ({ one }) => ({
   property: one(properties, { fields: [tripRoutes.propertyId], references: [properties.id] }),
+}));
+
+export const metersRelations = relations(meters, ({ one, many }) => ({
+  property: one(properties, { fields: [meters.propertyId], references: [properties.id] }),
+  hostUnit: one(units, { fields: [meters.hostUnitId], references: [units.id], relationName: "meterHost" }),
+  unit: one(units, { fields: [meters.unitId], references: [units.id], relationName: "meterConsumer" }),
+  readings: many(meterReadings),
+}));
+export const meterReadingsRelations = relations(meterReadings, ({ one }) => ({
+  meter: one(meters, { fields: [meterReadings.meterId], references: [meters.id] }),
+}));
+export const supplyPricesRelations = relations(supplyPrices, ({ one }) => ({
+  lease: one(leases, { fields: [supplyPrices.leaseId], references: [leases.id] }),
+}));
+export const electricitySettlementsRelations = relations(electricitySettlements, ({ one }) => ({
+  lease: one(leases, { fields: [electricitySettlements.leaseId], references: [leases.id] }),
 }));
 
 export const documentsRelations = relations(documents, ({ many }) => ({

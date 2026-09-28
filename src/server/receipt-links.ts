@@ -4,7 +4,7 @@
 import { createId } from "@paralleldrive/cuid2";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { DOCUMENT_LINK_TARGETS, documentLinks, expenses, expenseSchedules, trips, vehicleCosts, vehicleYears, wegAbrechnungen, type DocumentLinkTarget } from "@/db/schema";
+import { DOCUMENT_LINK_TARGETS, documentLinks, expenses, expenseSchedules, trips, vehicleCosts, vehicleYears, wegAbrechnungen, meterReadings, supplyPrices, type DocumentLinkTarget } from "@/db/schema";
 import { writeAuditLog } from "@/lib/audit";
 import { groupLinksByTarget, resolveReceipts, type LinkTargetType, type ReceiptLink } from "@/lib/expense-receipts";
 import { allocateCost } from "@/lib/vehicle-rate";
@@ -49,7 +49,9 @@ export async function linkTargetExists(targetType: string, targetId: string): Pr
     : targetType === "expense_schedule" ? await db.query.expenseSchedules.findFirst({ where: and(eq(expenseSchedules.id, targetId), isNull(expenseSchedules.deletedAt)) })
     : targetType === "weg_abrechnung" ? await db.query.wegAbrechnungen.findFirst({ where: and(eq(wegAbrechnungen.id, targetId), isNull(wegAbrechnungen.deletedAt)) })
     : targetType === "vehicle_cost" ? await db.query.vehicleCosts.findFirst({ where: and(eq(vehicleCosts.id, targetId), isNull(vehicleCosts.deletedAt)) })
-    : await db.query.vehicleYears.findFirst({ where: eq(vehicleYears.id, targetId) });
+    : targetType === "vehicle_year" ? await db.query.vehicleYears.findFirst({ where: eq(vehicleYears.id, targetId) })
+    : targetType === "meter_reading" ? await db.query.meterReadings.findFirst({ where: and(eq(meterReadings.id, targetId), isNull(meterReadings.deletedAt)) })
+    : await db.query.supplyPrices.findFirst({ where: and(eq(supplyPrices.id, targetId), isNull(supplyPrices.deletedAt)) });
   return row != null ? (targetType as DocumentLinkTarget) : null;
 }
 

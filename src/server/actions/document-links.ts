@@ -43,6 +43,7 @@ async function loadTarget(targetType: DocumentLinkTarget, targetId: string) {
     const c = await db.query.vehicleCosts.findFirst({ where: and(eq(vehicleCosts.id, targetId), isNull(vehicleCosts.deletedAt)) });
     return c && { propertyId: null, date: c.date, description: c.description, category: "vehicle", scheduleId: null, wegAbrechnungId: null, amountCents: c.amountCents };
   }
+  if (targetType !== "vehicle_year") return null; // Zählerstände/Preise: Belege nur per Upload
   const y = await db.query.vehicleYears.findFirst({ where: eq(vehicleYears.id, targetId), with: { vehicle: true } });
   return y && { propertyId: null, date: `${y.year}-12-31`, description: `Fahrtenliste Fahrzeug ${y.vehicle.name} ${y.year}`, category: "vehicle", scheduleId: null, wegAbrechnungId: null, amountCents: 1 };
 }

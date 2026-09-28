@@ -2,7 +2,7 @@
 // geerbte vom Abo bzw. von der WEG-Abrechnung), welche Buchung braucht noch einen Beleg,
 // welche Dokumente kommen als Beleg in Frage. Reine Funktionen, Beträge in Cents.
 
-export type LinkTargetType = "expense" | "expense_schedule" | "weg_abrechnung" | "vehicle_cost" | "vehicle_year";
+export type LinkTargetType = "expense" | "expense_schedule" | "weg_abrechnung" | "vehicle_cost" | "vehicle_year" | "meter_reading" | "supply_price";
 
 export type ReceiptDoc = { id: string; filename: string; title: string | null; mimeType: string };
 

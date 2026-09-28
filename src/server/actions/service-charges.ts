@@ -76,6 +76,8 @@ export async function createNkAbrechnungAction(propertyId: string, year: number)
   const categoryTotals = new Map<ExpenseCategory, number>();
   for (const e of allExpenses) {
     if (!(OPERATING_COST_CATEGORIES as string[]).includes(e.category)) continue;
+    // Direkt mit dem Verbraucher abgerechnet (z. B. Strom Einliegerwohnung) → nicht umlegen
+    if (e.nkExclude) continue;
     const inYear = expenseAmountInYear(e, year);
     if (inYear === 0) continue;
     let attributed: number;

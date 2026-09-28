@@ -7,6 +7,7 @@ import { RECEIPT_TASK_MIN_CENTS } from "@/lib/expense-receipts";
 import { frequentDestinations } from "@/lib/vehicle-rate";
 import { computeVehicleYearFor } from "@/server/trip-sync";
 import { readBackupStatus } from "@/server/backup-status";
+import { getMeterTasksDataAction } from "@/server/actions/meters";
 import { backupHealth } from "@/lib/backup-status";
 import { missingReceiptsByYear } from "@/lib/expense-receipts";
 import { expenseReceipts, loadReceiptContext } from "@/server/receipt-links";
@@ -124,6 +125,7 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
     provisionalVehicleYears,
     vehicleCostsMissingReceipts: [...costMissing.values()],
     frequentDestinations: frequent,
+    meters: await getMeterTasksDataAction(),
     backup: await readBackupStatus().then((s) => ({ health: backupHealth(s, new Date()), finishedAt: s?.finishedAt ?? null, message: s?.message ?? "" })),
   });
 }

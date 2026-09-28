@@ -101,7 +101,7 @@ export function buildLoanInterestPayments(
 //  - NK-Nachzahlung (> 0) / -Erstattung (< 0): vollständig Umlagen
 export function receiptsToAnlageVPayments(
   receipts: Array<{
-    kind: "rent" | "nk_settlement";
+    kind: "rent" | "nk_settlement" | "utility";
     amountCents: number;
     receivedAt: string;
     payment: { rentCents: number; serviceChargesCents: number | null } | null;
@@ -110,7 +110,8 @@ export function receiptsToAnlageVPayments(
   const out: AnlageVInput["payments"] = [];
   for (const r of receipts) {
     if (r.amountCents === 0) continue;
-    if (r.kind === "nk_settlement") {
+    // NK-Nachzahlung/-Erstattung und Verbrauchsabrechnung (Zwischenzähler) = Umlagen
+    if (r.kind === "nk_settlement" || r.kind === "utility") {
       out.push({ paidCents: r.amountCents, paidAt: r.receivedAt, rentCents: 0, serviceChargesCents: Math.abs(r.amountCents) });
     } else if (r.payment) {
       out.push({

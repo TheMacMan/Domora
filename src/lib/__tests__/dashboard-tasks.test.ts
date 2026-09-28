@@ -112,6 +112,25 @@ describe("buildDashboardTasks", () => {
     expect(t[0]!.href).toBe("/expenses?year=2025&beleg=missing");
     expect(t[1]!.title).toBe("1 Ausgabe 2026 ohne Beleg");
   });
+  it("Zwischenzähler: offene Abrechnungen, fehlender Preis, Jahresablesung", () => {
+    const t = buildDashboardTasks({
+      ...base,
+      meters: {
+        openSettlements: [
+          { id: "a", propertyId: "p", number: "STROM-2026-001", direction: "charge", cents: 54_494, createdAt: "2026-08-01", recipient: "A. Muster" },
+          { id: "b", propertyId: "p", number: "STROM-2026-002", direction: "refund", cents: 20_000, createdAt: "2026-09-20", recipient: "B. Muster" },
+        ],
+        missingPrices: [{ leaseId: "l1", propertyId: "p", label: "C. Muster · EG" }],
+        missingYearEnd: [{ meterId: "m", propertyId: "p", name: "Heizung", year: 2025 }],
+        calibration: [],
+      },
+    });
+    expect(t.map((x) => [x.id, x.severity])).toEqual([
+      ["el-a", "warning"], ["price-l1", "warning"], ["meter-year-end", "warning"], ["el-b", "info"],
+    ]);
+    expect(t.find((x) => x.id === "meter-year-end")!.title).toBe("Zählerstände zum 31.12.2025 erfassen");
+  });
+
   it("Datensicherung: fehlgeschlagen ist dringend, veraltet eine Warnung, ok keine Aufgabe", () => {
     const f = buildDashboardTasks({ ...base, backup: { health: "failed", finishedAt: "2026-09-27T02:15:08+02:00", message: "NAS-Freigabe nicht erreichbar" } });
     expect(f[0]).toMatchObject({ id: "backup", severity: "urgent", title: "Datensicherung fehlgeschlagen" });

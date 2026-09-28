@@ -9,6 +9,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { DepreciationItems } from "@/components/property/depreciation-items";
 import { DocumentsSection } from "@/components/document/documents-section";
 import { ConsumptionSection } from "@/components/property/consumption-section";
+import { PropertyTabs } from "@/components/property/property-tabs";
 
 export const metadata = { title: "Objekt – Domora" };
 
@@ -74,6 +75,8 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
           </form>
         </div>
       </div>
+
+      <PropertyTabs propertyId={property.id} active="overview" />
 
       {/* Stammdaten */}
       <div className="rounded-xl border bg-card shadow-sm">

@@ -37,6 +37,21 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
     redirect("/expenses");
   }
 
+  if (expense.electricitySettlementId && expense.propertyId) {
+    return (
+      <div className="max-w-2xl space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Zwischenzähler-Abrechnung</h1>
+        <div className="rounded-xl border bg-card p-5 space-y-3 text-sm">
+          <p>Diese Buchung ist beim Bezahlen einer Zwischenzähler-Abrechnung entstanden und kann hier nicht bearbeitet werden.</p>
+          <Button asChild size="sm">
+            <Link href={`/properties/${expense.propertyId}/meters`}>Zu den Zählern</Link>
+          </Button>
+        </div>
+        {receipts && <ReceiptsSection targetType="expense" targetId={id} data={receipts} targets={targets} />}
+      </div>
+    );
+  }
+
   if (expense.tripId) {
     return (
       <div className="max-w-2xl space-y-6">

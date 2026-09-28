@@ -33,6 +33,13 @@ export type TaskInput = {
   frequentDestinations?: Array<{ propertyId: string; label: string; year: number; count: number }>;
   // Datensicherung: Zustand und Zeitpunkt der letzten Sicherung
   backup?: { health: "ok" | "stale" | "failed" | "missing"; finishedAt: string | null; message: string };
+  // Zwischenzähler
+  meters?: {
+    openSettlements: Array<{ id: string; propertyId: string; number: string; direction: "refund" | "charge"; cents: number; createdAt: string; recipient: string }>;
+    missingPrices: Array<{ leaseId: string; propertyId: string; label: string }>;
+    missingYearEnd: Array<{ meterId: string; propertyId: string; name: string; year: number }>;
+    calibration: Array<{ propertyId: string; name: string; until: string }>;
+  };
 };
 
 const SEVERITY_ORDER: Record<TaskSeverity, number> = { urgent: 0, warning: 1, info: 2 };
@@ -139,6 +146,47 @@ export function buildDashboardTasks(input: TaskInput): DashboardTask[] {
         ? "Nächtliche Sicherung prüfen (scripts/backup.sh, Cron 02:15)"
         : `Letzter Lauf ${b.finishedAt ? fmtDate(b.finishedAt.slice(0, 10)) : "–"}${b.health === "failed" ? ` · ${b.message}` : ""} · NAS-Freigabe und Cron prüfen`,
       href: "/settings",
+    });
+  }
+
+  const m = input.meters;
+  for (const s of m?.openSettlements ?? []) {
+    const age = daysBetween(s.createdAt, input.today);
+    tasks.push({
+      id: `el-${s.id}`,
+      severity: s.direction === "charge" && age > 21 ? "warning" : "info",
+      title: s.direction === "refund" ? `Stromerstattung ${s.number} an ${s.recipient} überweisen` : `Stromrechnung ${s.number} an ${s.recipient} offen`,
+      detail: s.direction === "refund" ? "Nach der Überweisung als bezahlt markieren — erst dann wird gebucht" : `seit ${age} Tagen · Zahlungseingang als bezahlt markieren`,
+      href: `/properties/${s.propertyId}/meters`,
+      amountCents: s.cents,
+    });
+  }
+  for (const p of m?.missingPrices ?? []) {
+    tasks.push({
+      id: `price-${p.leaseId}`,
+      severity: "warning",
+      title: `Strompreis fehlt: ${p.label}`,
+      detail: "Arbeitspreis aus der Stromrechnung des Mieters eintragen — sonst keine Zwischenzähler-Abrechnung",
+      href: `/properties/${p.propertyId}/meters`,
+    });
+  }
+  const ye = m?.missingYearEnd ?? [];
+  if (ye.length > 0) {
+    tasks.push({
+      id: "meter-year-end",
+      severity: "warning",
+      title: `Zählerstände zum 31.12.${ye[0]!.year} erfassen`,
+      detail: ye.map((x) => x.name).join(", "),
+      href: `/properties/${ye[0]!.propertyId}/meters`,
+    });
+  }
+  for (const c of m?.calibration ?? []) {
+    tasks.push({
+      id: `calib-${c.name}`,
+      severity: "info",
+      title: `Eichfrist ${c.name} endet ${fmtDate(c.until)}`,
+      detail: "Zähler tauschen bzw. eichen lassen",
+      href: `/properties/${c.propertyId}/meters`,
     });
   }
 
