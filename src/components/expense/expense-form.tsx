@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FILE_ACCEPT, FILE_TYPES_LABEL, MAX_FILE_SIZE_MB } from "@/lib/validators/document";
 
 // Re-Export für bestehende Imports (z.B. aus expense-form-internen Komponenten)
 export const CATEGORY_LABELS = CATEGORY_LABELS_LIB;
@@ -56,6 +57,7 @@ export function ExpenseForm(props: Props) {
       ? props.defaultValues.date?.slice(0, 4) ?? String(new Date().getFullYear())
       : String(new Date().getFullYear());
   const [yearInput, setYearInput] = useState(initialYear);
+  const [files, setFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (isGrundsteuer) {
@@ -77,15 +79,31 @@ export function ExpenseForm(props: Props) {
 
   const onSubmit = (data: ExpenseFormInput) => {
     startTransition(async () => {
-      const result =
-        props.mode === "create"
-          ? await createExpenseAction(data)
-          : await updateExpenseAction(props.expenseId, data);
-
-      if (!result.ok) {
-        toast.error(result.error);
-        setError("root", { message: result.error });
-        return;
+      let receiptFd: FormData | undefined;
+      if (props.mode === "create" && files.length > 0) {
+        receiptFd = new FormData();
+        for (const f of files) receiptFd.append("file", f);
+      }
+      if (props.mode === "create") {
+        const created = await createExpenseAction(data, receiptFd);
+        if (!created.ok) {
+          toast.error(created.error);
+          setError("root", { message: created.error });
+          return;
+        }
+        if (created.receiptErrors.length > 0) {
+          // Ausgabe ist gespeichert — Beleg dort nachreichen
+          toast.error(`Beleg nicht gespeichert: ${created.receiptErrors.join("; ")}`);
+          router.push(`/expenses/${created.id}/edit`);
+          return;
+        }
+      } else {
+        const updated = await updateExpenseAction(props.expenseId, data);
+        if (!updated.ok) {
+          toast.error(updated.error);
+          setError("root", { message: updated.error });
+          return;
+        }
       }
       toast.success("Gespeichert");
       router.push("/expenses");
@@ -312,6 +330,25 @@ export function ExpenseForm(props: Props) {
         <Textarea id="notes" {...register("notes")} placeholder="Belegnummer, Anmerkungen…" rows={3} disabled={isPending} />
         {errors.notes && <p className="text-xs text-destructive">{errors.notes.message}</p>}
       </div>
+
+      {props.mode === "create" && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="receipt-files">
+            Beleg <span className="text-muted-foreground font-normal">– optional ({FILE_TYPES_LABEL}, max. {MAX_FILE_SIZE_MB} MB)</span>
+          </Label>
+          <Input
+            id="receipt-files"
+            type="file"
+            multiple
+            accept={FILE_ACCEPT}
+            disabled={isPending}
+            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+          />
+          <p className="text-xs text-muted-foreground">
+            Wird als Dokument beim Objekt der Ausgabe abgelegt und direkt verknüpft.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <Button type="submit" loading={isPending}>

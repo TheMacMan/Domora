@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { FileText, FileSpreadsheet, Image as ImageIcon, ShieldAlert, Paperclip } from "lucide-react";
-import { formatMoney } from "@/lib/money";
-import { formatDate } from "@/lib/dates";
 import { getAllDocumentsAction } from "@/server/actions/documents";
 import { Badge } from "@/components/ui/badge";
 import { Private } from "@/components/private";
@@ -120,13 +118,13 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                         </Link>
                         <span>· {formatDateObj(d.createdAt)} · {formatBytes(d.sizeBytes)}</span>
                       </div>
-                      {d.expenses.length > 0 && (
+                      {d.linkedTo.length > 0 && (
                         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                           <Paperclip className="size-3 shrink-0" />
                           <span>Beleg zu</span>
-                          {d.expenses.map((e) => (
-                            <Link key={e.id} href={`/expenses/${e.id}/edit`} className="underline hover:text-foreground">
-                              {e.description ?? "Ausgabe"} · {formatDate(e.date)} · {formatMoney(e.amountCents)}
+                          {d.linkedTo.map((l) => (
+                            <Link key={l.href} href={l.href} className="underline hover:text-foreground">
+                              {l.label}
                             </Link>
                           ))}
                         </div>
@@ -142,7 +140,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                     <div className="flex shrink-0 items-center">
                       <DocumentOpenButton doc={{ id: d.id, filename: d.filename, title: d.title, mimeType: d.mimeType }} variant="icon" />
                       <DocumentEditButton
-                        doc={{ id: d.id, filename: d.filename, title: d.title, tag: d.tag, year: d.year, notes: d.notes, entityType: d.entityType, entityId: d.entityId }}
+                        doc={{ id: d.id, filename: d.filename, title: d.title, tag: d.tag, year: d.year, notes: d.notes, entityType: d.entityType, entityId: d.entityId, linkCount: d.linkedTo.length }}
                         targets={targets}
                       />
                     </div>

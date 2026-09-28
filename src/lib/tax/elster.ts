@@ -4,7 +4,16 @@
 // ELSTER erwartet volle Euro: Einnahmen werden abgerundet, Werbungskosten
 // aufgerundet (je Eintrag, zugunsten des Steuerpflichtigen — so rechnet auch DATEV).
 
-export type ElsterItem = { date: string | null; label: string; cents: number };
+// Beleg zu einem Einzelposten (Dokument, ggf. geerbt vom Abo/von der WEG-Abrechnung)
+export type ElsterReceipt = { id: string; filename: string; title: string | null; mimeType: string };
+
+export type ElsterItem = {
+  date: string | null;
+  label: string;
+  cents: number;
+  expenseId?: string;          // Ausgabe hinter dem Posten (für Belegverweis und Bearbeiten)
+  receipts?: ElsterReceipt[];  // verknüpfte Belege; leer = Beleg fehlt
+};
 
 export type ElsterEntry = {
   zeile: string;
@@ -50,7 +59,14 @@ export type ElsterInput = {
   }>;
   afaFallbackCents: number | null; // AfA ohne Posten (aus Kaufpreis berechnet); null = keine
   loans: Array<{ label: string; interestCents: number }>;
-  expenses: Array<{ category: string; cents: number; date: string | null; description: string | null }>;
+  expenses: Array<{
+    category: string;
+    cents: number;
+    date: string | null;
+    description: string | null;
+    id?: string;
+    receipts?: ElsterReceipt[];
+  }>;
 };
 
 // Umgelegte Kosten (Zeile 73) — Bezeichnungen wie im ELSTER-Formular
@@ -102,7 +118,13 @@ function sumOf(entries: ElsterEntry[]) {
 function toItems(rows: ElsterInput["expenses"]): ElsterItem[] {
   return [...rows]
     .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))
-    .map((r) => ({ date: r.date, label: r.description ?? "(ohne Beschreibung)", cents: r.cents }));
+    .map((r) => ({
+      date: r.date,
+      label: r.description ?? "(ohne Beschreibung)",
+      cents: r.cents,
+      ...(r.id ? { expenseId: r.id } : {}),
+      ...(r.receipts ? { receipts: r.receipts } : {}),
+    }));
 }
 
 function formatDate(iso: string) {

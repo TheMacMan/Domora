@@ -6,12 +6,19 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import { CATEGORY_LABELS, isOperatingCost } from "@/lib/expense";
 import { ArrowLeft, Trash2, Pencil } from "lucide-react";
+import { getReceiptPanelAction } from "@/server/actions/document-links";
+import { getDocumentTargetsAction } from "@/server/actions/documents";
+import { ReceiptsSection } from "@/components/expense/receipts-section";
 
 export const metadata = { title: "WEG-Abrechnung – Domora" };
 
 export default async function WegAbrechnungDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const abr = await getWegAbrechnungAction(id);
+  const [abr, receipts, targets] = await Promise.all([
+    getWegAbrechnungAction(id),
+    getReceiptPanelAction("weg_abrechnung", id),
+    getDocumentTargetsAction(),
+  ]);
   if (!abr) notFound();
 
   async function handleDelete() {
@@ -141,6 +148,16 @@ export default async function WegAbrechnungDetailPage({ params }: { params: Prom
           <p className="text-base font-bold tabular-nums">{formatMoney(positionsTotal)}</p>
         </div>
       </section>
+
+      {receipts && (
+        <ReceiptsSection
+          targetType="weg_abrechnung"
+          targetId={id}
+          data={receipts}
+          targets={targets}
+          hint="Die Jahresabrechnung ist Beleg für alle Posten und den Saldo dieser Abrechnung."
+        />
+      )}
 
       {/* Hinweise */}
       <div className="rounded-md bg-muted/30 border px-4 py-3 text-xs text-muted-foreground space-y-1">

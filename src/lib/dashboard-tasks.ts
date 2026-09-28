@@ -115,7 +115,7 @@ export function buildDashboardTasks(input: TaskInput): DashboardTask[] {
       id: `receipts-${r.year}`,
       severity: r.year < currentYear ? "warning" : "info",
       title: `${r.count} ${r.count === 1 ? "Ausgabe" : "Ausgaben"} ${r.year} ohne Beleg`,
-      detail: "Rechnung oder Bon hochladen und verknüpfen — ohne Beleg nicht in die Steuererklärung übernehmen",
+      detail: "ab 20 € je Buchung · Rechnung oder Bon hochladen und verknüpfen — ohne Beleg nicht in die Steuererklärung übernehmen",
       href: `/expenses?year=${r.year}&beleg=missing`,
       amountCents: r.cents,
     });

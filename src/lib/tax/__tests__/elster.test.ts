@@ -132,4 +132,26 @@ describe("buildElsterAnlageV", () => {
   it("Allgemeine Angaben mit Anschaffungsdatum in Zeile 7", () => {
     expect(r.allgemein.find((a) => a.zeile === "7")?.value).toBe("01.07.2014");
   });
+  it("Einzelposten tragen Ausgaben-ID und Belegverweis, Summen bleiben gleich", () => {
+    const beleg = { id: "d1", filename: "20250117_Eckventil.pdf", title: "Rechnung Eckventil", mimeType: "application/pdf" };
+    const base = input();
+    const withRefs = input({
+      expenses: base.expenses.map((e, i) => ({ ...e, id: `e${i}`, receipts: i === 0 ? [beleg] : [] })),
+    });
+    const a = buildElsterAnlageV(base);
+    const b = buildElsterAnlageV(withRefs);
+    expect(b.summeWerbungskosten).toEqual(a.summeWerbungskosten);
+    expect(b.ueberschuss).toEqual(a.ueberschuss);
+
+    const z55 = b.werbungskosten.flatMap((sec) => sec.entries).find((e) => e.zeile === "55")!;
+    const eckventil = z55.items!.find((i) => i.label === "Reparatur Eckventil")!;
+    expect(eckventil.expenseId).toBe("e0");
+    expect(eckventil.receipts).toEqual([beleg]);
+    const algizid = z55.items!.find((i) => i.label === "Algizid")!;
+    expect(algizid.receipts).toEqual([]); // Beleg fehlt
+
+    // ohne Angaben keine zusätzlichen Felder
+    const plain = a.werbungskosten.flatMap((sec) => sec.entries).find((e) => e.zeile === "55")!.items![0]!;
+    expect(plain).not.toHaveProperty("expenseId");
+  });
 });

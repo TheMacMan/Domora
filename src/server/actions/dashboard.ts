@@ -3,7 +3,8 @@
 import { and, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/db";
 import { expenses, leases, nkAbrechnungen } from "@/db/schema";
-import { missingReceiptsByYear } from "@/lib/expense-receipts";
+import { missingReceiptsByYear, resolveReceipts } from "@/lib/expense-receipts";
+import { loadReceiptLinks } from "@/server/receipt-links";
 import { requireUser } from "@/lib/auth";
 import { todayLocal } from "@/lib/dates";
 import { buildFixedRateTimeline } from "@/lib/loan-projection";
@@ -46,12 +47,12 @@ export async function getDashboardTasksAction(): Promise<DashboardTask[]> {
     // Ausgaben des Vor- und laufenden Jahres (bis heute) für die Belegprüfung
     db.query.expenses.findMany({
       where: and(isNull(expenses.deletedAt), gte(expenses.date, `${year - 1}-01-01`), lte(expenses.date, today)),
-      with: { receiptLinks: { columns: { documentId: true } } },
     }),
   ]);
+  const receiptLinks = await loadReceiptLinks();
 
   const missingReceipts = [...missingReceiptsByYear(
-    recentExpenses.map((e) => ({ ...e, receiptCount: e.receiptLinks.length })),
+    recentExpenses.map((e) => ({ ...e, receiptCount: resolveReceipts(e, receiptLinks).length })),
   )].map(([y, v]) => ({ year: y, ...v }));
 
   const missingDues: Array<{ leaseId: string; label: string; months: string[] }> = [];

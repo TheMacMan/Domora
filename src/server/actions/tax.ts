@@ -4,6 +4,8 @@ import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { properties, propertyDepreciationItems, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { resolveReceipts } from "@/lib/expense-receipts";
+import { loadReceiptLinks } from "@/server/receipt-links";
 import { calcAnlageV, calcAfA, buildLoanInterestPayments, receiptsToAnlageVPayments, depreciationItemsSumForYear, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
 import { buildElsterAnlageV, type ElsterAnlageV } from "@/lib/tax/elster";
 
@@ -71,17 +73,23 @@ async function loadTaxYearData(propertyId: string, year: number) {
   });
   const propertyCount = Math.max(allProperties.length, 1);
 
+  // Belege je Ausgabe (eigene + geerbte) — nur Verweis, ändert keine Beträge
+  const receiptLinks = await loadReceiptLinks();
+  const receiptsOf = (e: (typeof allExpenses)[number]) => resolveReceipts(e, receiptLinks).map((r) => r.doc);
+
   const propertyExpenses = allExpenses
     .filter((e) => e.date.startsWith(yearStr))
     .flatMap((e) => {
       if (e.propertyId === propertyId)
-        return [{ category: e.category, amountCents: e.amountCents, date: e.date, description: e.description }];
+        return [{ id: e.id, category: e.category, amountCents: e.amountCents, date: e.date, description: e.description, receipts: receiptsOf(e) }];
       if (e.propertyId === null)
         return [{
+          id: e.id,
           category: e.category,
           amountCents: Math.round(e.amountCents / propertyCount),
           date: e.date,
           description: `${e.description ?? "(ohne Beschreibung)"} (anteilig 1/${propertyCount})`,
+          receipts: receiptsOf(e),
         }];
       return [];
     });
@@ -202,10 +210,12 @@ export async function getElsterAnlageVAction(propertyId: string, year: number): 
       interestCents: manualInterestCents ?? lps.reduce((s, lp) => s + lp.interestCents, 0),
     })),
     expenses: propertyExpenses.map((e) => ({
+      id: e.id,
       category: e.category,
       cents: e.amountCents,
       date: e.date,
       description: e.description,
+      receipts: e.receipts,
     })),
   });
 

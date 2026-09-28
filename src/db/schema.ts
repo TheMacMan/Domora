@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -310,18 +310,25 @@ export const documents = sqliteTable("documents", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
 });
 
-// Belegverknüpfung: welche Dokumente belegen welche Ausgabe (n:m — ein Scan kann mehrere
-// Bons enthalten, eine Rechnung kann aus Anzahlung und Rest bestehen)
-export const expenseDocuments = sqliteTable(
-  "expense_documents",
+// Belegverknüpfung: Dokument ↔ Ausgabe / Abo / WEG-Abrechnung (n:m). Das Dokument behält
+// seinen Ablageort. Belege am Abo bzw. an der WEG-Abrechnung gelten für die daraus
+// erzeugten Ausgaben mit. Lösen = Soft-Delete der Verknüpfung.
+export const DOCUMENT_LINK_TARGETS = ["expense", "expense_schedule", "weg_abrechnung"] as const;
+export type DocumentLinkTarget = (typeof DOCUMENT_LINK_TARGETS)[number];
+
+export const documentLinks = sqliteTable(
+  "document_links",
   {
-    expenseId: text("expense_id").notNull().references(() => expenses.id),
+    id: text("id").primaryKey(),
     documentId: text("document_id").notNull().references(() => documents.id),
+    targetType: text("target_type", { enum: DOCUMENT_LINK_TARGETS }).notNull(),
+    targetId: text("target_id").notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
   },
-  (t) => [primaryKey({ columns: [t.expenseId, t.documentId] })],
+  (t) => [index("document_links_target_idx").on(t.targetType, t.targetId), index("document_links_document_idx").on(t.documentId)],
 );
 
 export const LOAN_TYPES = ["annuity", "interest_only", "bauspar"] as const;
@@ -535,19 +542,17 @@ export const loanInterestYearsRelations = relations(loanInterestYears, ({ one })
   loan: one(loans, { fields: [loanInterestYears.loanId], references: [loans.id] }),
 }));
 
-export const expensesRelations = relations(expenses, ({ one, many }) => ({
+export const expensesRelations = relations(expenses, ({ one }) => ({
   property: one(properties, { fields: [expenses.propertyId], references: [properties.id] }),
   schedule: one(expenseSchedules, { fields: [expenses.scheduleId], references: [expenseSchedules.id] }),
-  receiptLinks: many(expenseDocuments),
 }));
 
 export const documentsRelations = relations(documents, ({ many }) => ({
-  expenseLinks: many(expenseDocuments),
+  links: many(documentLinks),
 }));
 
-export const expenseDocumentsRelations = relations(expenseDocuments, ({ one }) => ({
-  expense: one(expenses, { fields: [expenseDocuments.expenseId], references: [expenses.id] }),
-  document: one(documents, { fields: [expenseDocuments.documentId], references: [documents.id] }),
+export const documentLinksRelations = relations(documentLinks, ({ one }) => ({
+  document: one(documents, { fields: [documentLinks.documentId], references: [documents.id] }),
 }));
 
 export const unitsRelations = relations(units, ({ one, many }) => ({

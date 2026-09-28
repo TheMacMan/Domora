@@ -21,6 +21,7 @@ type Doc = {
   createdAt: Date;
   entityType: string;
   entityId: string;
+  linkCount?: number;
 };
 
 type Props = {
@@ -123,7 +124,7 @@ export function DocumentsTable({ docs, targets }: Props) {
                         <Eye className="size-3.5" />
                       </Button>
                       <DocumentEditButton
-                        doc={{ id: doc.id, filename: doc.filename, title: doc.title, tag: doc.tag, year: doc.year, notes: doc.notes, entityType: doc.entityType, entityId: doc.entityId }}
+                        doc={{ id: doc.id, filename: doc.filename, title: doc.title, tag: doc.tag, year: doc.year, notes: doc.notes, entityType: doc.entityType, entityId: doc.entityId, linkCount: doc.linkCount }}
                         targets={targets}
                       />
                     </div>

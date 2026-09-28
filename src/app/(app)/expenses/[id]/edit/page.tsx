@@ -2,9 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getExpenseAction, deleteExpenseAction } from "@/server/actions/expenses";
 import { getPropertiesAction } from "@/server/actions/properties";
-import { getExpenseReceiptsAction } from "@/server/actions/expense-receipts";
-import { ExpenseReceipts } from "@/components/expense/expense-receipts";
-import { needsReceipt } from "@/lib/expense-receipts";
+import { getReceiptPanelAction } from "@/server/actions/document-links";
+import { getDocumentTargetsAction } from "@/server/actions/documents";
+import { ReceiptsSection } from "@/components/expense/receipts-section";
 import { ExpenseForm } from "@/components/expense/expense-form";
 import { Button } from "@/components/ui/button";
 import { toEuros } from "@/lib/money";
@@ -15,10 +15,11 @@ export const metadata = { title: "Ausgabe bearbeiten – Domora" };
 
 export default async function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [expense, propertyList, receipts] = await Promise.all([
+  const [expense, propertyList, receipts, targets] = await Promise.all([
     getExpenseAction(id),
     getPropertiesAction(),
-    getExpenseReceiptsAction(id),
+    getReceiptPanelAction("expense", id),
+    getDocumentTargetsAction(),
   ]);
 
   if (!expense) notFound();
@@ -54,6 +55,15 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
             </Link>
           </Button>
         </div>
+        {receipts && (
+          <ReceiptsSection
+            targetType="expense"
+            targetId={id}
+            data={receipts}
+            targets={targets}
+            hint="Belege am Abo (z. B. Wirtschaftsplan) gelten für alle Monate. Hier kannst du zusätzlich einen Beleg nur für diesen Monat verknüpfen."
+          />
+        )}
       </div>
     );
   }
@@ -85,17 +95,7 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
           notes: expense.notes ?? undefined,
         }}
       />
-      {receipts && (
-        <ExpenseReceipts
-          expenseId={id}
-          propertyId={expense.propertyId}
-          year={parseInt(expense.date.slice(0, 4), 10)}
-          needed={needsReceipt(expense)}
-          linked={receipts.linked}
-          suggestions={receipts.suggestions}
-          others={receipts.others}
-        />
-      )}
+      {receipts && <ReceiptsSection targetType="expense" targetId={id} data={receipts} targets={targets} />}
     </div>
   );
 }

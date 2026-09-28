@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import type { ElsterEntry, ElsterSection } from "@/lib/tax/elster";
 import { AlertTriangle } from "lucide-react";
+import { ReceiptPreviewButton } from "@/components/expense/receipt-preview-button";
 
 export const metadata = { title: "ELSTER-Übertragung – Domora" };
 
@@ -37,7 +38,11 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
       {entry.items && entry.items.length > 0 && (
         <details className="mt-2 ml-12 text-xs">
           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-            {entry.items.length} {entry.items.length === 1 ? "Beleg" : "Belege"} anzeigen
+            {entry.items.length} Einzelposten anzeigen
+            {(() => {
+              const missing = entry.items!.filter((i) => i.receipts && i.receipts.length === 0 && i.cents !== 0).length;
+              return missing > 0 ? <span className="ml-1 text-amber-600">· {missing} ohne Beleg</span> : null;
+            })()}
           </summary>
           <ul className="mt-2 divide-y rounded-md border">
             {entry.items.map((i, idx) => (
@@ -45,7 +50,24 @@ function EntryRow({ entry }: { entry: ElsterEntry }) {
                 <span className="shrink-0 tabular-nums text-muted-foreground">
                   {formatDate(i.date)}
                 </span>
-                <span className="min-w-0 flex-1 break-words">{i.label}</span>
+                <span className="min-w-0 flex-1 break-words">
+                  {i.expenseId ? (
+                    <Link href={`/expenses/${i.expenseId}/edit`} className="hover:underline">{i.label}</Link>
+                  ) : i.label}
+                </span>
+                {i.receipts && (
+                  i.receipts.length > 0 ? (
+                    <ReceiptPreviewButton docs={i.receipts} />
+                  ) : (
+                    <Link
+                      href={i.expenseId ? `/expenses/${i.expenseId}/edit` : "/expenses?beleg=missing"}
+                      className="shrink-0 inline-flex items-center gap-0.5 text-[11px] text-amber-600 hover:underline"
+                    >
+                      <AlertTriangle className="size-3" />
+                      Beleg fehlt
+                    </Link>
+                  )
+                )}
                 <span className="shrink-0 tabular-nums">{formatMoney(i.cents)}</span>
               </li>
             ))}

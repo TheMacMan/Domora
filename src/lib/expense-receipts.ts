@@ -1,37 +1,72 @@
-// Belegverknüpfung von Ausgaben: welche Buchung braucht einen Beleg, welche Dokumente
-// kommen als Beleg in Frage. Reine Funktionen, Beträge in Cents.
+// Belegverknüpfung von Ausgaben: welche Belege gelten für eine Buchung (eigene plus
+// geerbte vom Abo bzw. von der WEG-Abrechnung), welche Buchung braucht noch einen Beleg,
+// welche Dokumente kommen als Beleg in Frage. Reine Funktionen, Beträge in Cents.
 
-export type ReceiptExpense = {
-  id: string;
-  date: string; // YYYY-MM-DD
-  amountCents: number;
-  propertyId: string | null;
-  description: string | null;
-  wegAbrechnungId: string | null;
-  scheduleId: string | null;
-  receiptCount: number;
-};
+export type LinkTargetType = "expense" | "expense_schedule" | "weg_abrechnung";
+
+export type ReceiptDoc = { id: string; filename: string; title: string | null; mimeType: string };
+
+// Aktive Verknüpfung (gelöste und gelöschte Dokumente sind bereits herausgefiltert)
+export type ReceiptLink = { linkId: string; targetType: LinkTargetType; targetId: string; doc: ReceiptDoc };
+
+export type ReceiptSource = "own" | "schedule" | "weg";
+
+export type ResolvedReceipt = ReceiptLink & { source: ReceiptSource };
+
+// Belege einer Ausgabe: eigene Verknüpfungen, dazu die des Abos und der WEG-Abrechnung.
+// Ein Dokument erscheint nur einmal (eigene Verknüpfung hat Vorrang).
+export function resolveReceipts(
+  e: { id: string; scheduleId: string | null; wegAbrechnungId: string | null },
+  byTarget: Map<string, ReceiptLink[]>,
+): ResolvedReceipt[] {
+  const out: ResolvedReceipt[] = [];
+  const seen = new Set<string>();
+  const add = (key: string, source: ReceiptSource) => {
+    for (const l of byTarget.get(key) ?? []) {
+      if (seen.has(l.doc.id)) continue;
+      seen.add(l.doc.id);
+      out.push({ ...l, source });
+    }
+  };
+  add(`expense:${e.id}`, "own");
+  if (e.scheduleId) add(`expense_schedule:${e.scheduleId}`, "schedule");
+  if (e.wegAbrechnungId) add(`weg_abrechnung:${e.wegAbrechnungId}`, "weg");
+  return out;
+}
+
+export function groupLinksByTarget(links: ReceiptLink[]): Map<string, ReceiptLink[]> {
+  const m = new Map<string, ReceiptLink[]>();
+  for (const l of links) {
+    const k = `${l.targetType}:${l.targetId}`;
+    m.set(k, [...(m.get(k) ?? []), l]);
+  }
+  return m;
+}
 
 export type ReceiptStatus = "linked" | "missing" | "not_needed";
 
-// Keinen eigenen Beleg brauchen:
-// - Posten einer WEG-Jahresabrechnung (Beleg ist die Abrechnung selbst)
-// - aus einem Abo erzeugte Buchungen (Beleg ist Vertrag/Wirtschaftsplan am Abo)
-// - Nullbuchungen (z. B. nicht gezahlte Rate)
-export function needsReceipt(e: Pick<ReceiptExpense, "amountCents" | "wegAbrechnungId" | "scheduleId">): boolean {
-  return e.amountCents !== 0 && !e.wegAbrechnungId && !e.scheduleId;
+// Nur Nullbuchungen (z. B. nicht gezahlte Rate) brauchen keinen Beleg. Abo- und
+// WEG-Buchungen brauchen einen — er kann am Abo bzw. an der WEG-Abrechnung hängen.
+export function needsReceipt(e: { amountCents: number }): boolean {
+  return e.amountCents !== 0;
 }
 
-export function receiptStatus(e: Pick<ReceiptExpense, "amountCents" | "wegAbrechnungId" | "scheduleId" | "receiptCount">): ReceiptStatus {
+export function receiptStatus(e: { amountCents: number; receiptCount: number }): ReceiptStatus {
   if (e.receiptCount > 0) return "linked";
   return needsReceipt(e) ? "missing" : "not_needed";
 }
 
-// Ausgaben ohne Beleg je Jahr (Buchungsjahr)
-export function missingReceiptsByYear(list: ReceiptExpense[]): Map<number, { count: number; cents: number }> {
+// Bagatellgrenze für die Dashboard-Aufgabe (je Buchung, Betrag)
+export const RECEIPT_TASK_MIN_CENTS = 2_000;
+
+// Ausgaben ohne Beleg je Buchungsjahr — ab der Bagatellgrenze
+export function missingReceiptsByYear(
+  list: Array<{ date: string; amountCents: number; receiptCount: number }>,
+  minCents = RECEIPT_TASK_MIN_CENTS,
+): Map<number, { count: number; cents: number }> {
   const out = new Map<number, { count: number; cents: number }>();
   for (const e of list) {
-    if (receiptStatus(e) !== "missing") continue;
+    if (receiptStatus(e) !== "missing" || Math.abs(e.amountCents) < minCents) continue;
     const y = parseInt(e.date.slice(0, 4), 10);
     const cur = out.get(y) ?? { count: 0, cents: 0 };
     cur.count += 1;
@@ -41,10 +76,22 @@ export function missingReceiptsByYear(list: ReceiptExpense[]): Map<number, { cou
   return out;
 }
 
+// Dokument-Kategorie für einen neuen Beleg aus der Ausgabenkategorie vorschlagen
+export function tagForExpenseCategory(category: string): string {
+  if (category === "maintenance" || category === "capital_expense") return "Handwerker & Renovierung";
+  if (category === "bk_grundsteuer" || category === "bk_strasse_muell") return "Grundsteuer & Gebühren";
+  if (category === "bk_wasser" || category === "bk_abwasser") return "Wasser & Abwasser";
+  if (category === "bk_heizung" || category === "bk_warmwasser" || category === "bk_beleuchtung") return "Energie";
+  if (category === "bk_versicherung" || category === "insurance_owner") return "Versicherung";
+  if (category.startsWith("weg_")) return "WEG";
+  return "Beleg";
+}
+
 export type CandidateDoc = {
   id: string;
   filename: string;
   title: string | null;
+  tag: string;
   year: number | null;
   entityType: string;
   entityId: string;
@@ -73,28 +120,29 @@ function words(s: string): Set<string> {
   );
 }
 
-// Dokumente nach Passung zur Ausgabe sortieren: Datum im Dateinamen, Namensähnlichkeit
-// (Händler/Stichworte), Objekt und Belegjahr. Nur Dokumente mit Punktzahl > 0.
+// Dokumente nach Passung sortieren: Datum im Dateinamen, Namensähnlichkeit, passende
+// Kategorie, Objekt und Belegjahr. Nur Dokumente mit Punktzahl > 1.
 export function rankReceiptCandidates(
-  expense: Pick<ReceiptExpense, "date" | "propertyId" | "description">,
+  target: { date: string; propertyId: string | null; description: string | null; tag?: string },
   docs: CandidateDoc[],
   limit = 8,
 ): CandidateDoc[] {
-  const expWords = words(expense.description ?? "");
-  const expYear = parseInt(expense.date.slice(0, 4), 10);
+  const targetWords = words(target.description ?? "");
+  const targetYear = parseInt(target.date.slice(0, 4), 10);
   const scored = docs.map((d) => {
     let score = 0;
     const fileDate = dateFromFilename(d.filename);
     if (fileDate) {
-      const diff = dayDiff(fileDate, expense.date);
+      const diff = dayDiff(fileDate, target.date);
       if (diff === 0) score += 6;
       else if (diff <= 3) score += 4;
       else if (diff <= 14) score += 2;
     }
     const docWords = words(`${d.title ?? ""} ${d.filename}`);
-    for (const w of expWords) if (docWords.has(w)) score += 3;
-    if (d.entityType === "property" && d.entityId === expense.propertyId) score += 1;
-    if (d.year === expYear) score += 1;
+    for (const w of targetWords) if (docWords.has(w)) score += 3;
+    if (target.tag && target.tag !== "Beleg" && d.tag === target.tag) score += 1;
+    if (d.entityType === "property" && d.entityId === target.propertyId) score += 1;
+    if (d.year === targetYear) score += 1;
     return { d, score };
   });
   return scored

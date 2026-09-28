@@ -28,8 +28,8 @@ type Props = {
   defaultOpen?: boolean;
   // Optional: Zuordnung im Formular wählbar (Dokumentenseite)
   targets?: DocumentTarget[];
-  // Optional: hochgeladene Dateien direkt als Beleg an diese Ausgabe hängen
-  linkExpenseId?: string;
+  // Optional: hochgeladene Dateien direkt als Beleg verknüpfen (Ausgabe, Abo, WEG-Abrechnung)
+  linkTarget?: { type: "expense" | "expense_schedule" | "weg_abrechnung"; id: string };
   defaultYear?: number;
   defaultTag?: string;
   label?: string;
@@ -41,7 +41,7 @@ type UploadState =
   | { kind: "done"; count: number }
   | { kind: "error"; messages: string[] };
 
-export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, targets, linkExpenseId, defaultYear, defaultTag, label = "Dokument hochladen" }: Props) {
+export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, targets, linkTarget, defaultYear, defaultTag, label = "Dokument hochladen" }: Props) {
   const [target, setTarget] = useState(`${entityType}:${entityId}`);
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
@@ -127,7 +127,10 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
         const year = yearInput || String(suggestYear(file.name) ?? "");
         if (year) fd.append("year", year);
         if (notes) fd.append("notes", notes);
-        if (linkExpenseId) fd.append("expenseId", linkExpenseId);
+        if (linkTarget) {
+          fd.append("linkTargetType", linkTarget.type);
+          fd.append("linkTargetId", linkTarget.id);
+        }
 
         // Netzwerk-/Serverfehler (z. B. Größenlimit) abfangen statt die Seite abstürzen zu lassen
         try {

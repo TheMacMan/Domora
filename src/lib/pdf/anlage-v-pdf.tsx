@@ -47,12 +47,40 @@ function TableRows({ rows }: { rows: Row[] }) {
   );
 }
 
+// Einzelposten der Werbungskosten mit Belegverweis (aus der ELSTER-Aufbereitung)
+export type BelegPosten = {
+  zeile: string;
+  gruppe: string;
+  date: string | null;
+  label: string;
+  cents: number;
+  beleg: string | null; // Name des Belegs, null = fehlt
+};
+
 type Props = {
   ergebnis: AnlageVErgebnis;
   propertyAddress: string;
+  belege?: BelegPosten[];
 };
 
-export function AnlageVPdf({ ergebnis, propertyAddress }: Props) {
+function fmtDate(iso: string | null) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+const b = StyleSheet.create({
+  row:     { flexDirection: "row", paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: "#e5e5e5" },
+  zeile:   { width: 26, color: "#666" },
+  date:    { width: 52, color: "#666" },
+  label:   { flex: 1, paddingRight: 6 },
+  beleg:   { width: 150, paddingRight: 6, color: "#444" },
+  missing: { width: 150, paddingRight: 6, color: "#b45309", fontWeight: 700 },
+  amount:  { width: 62, textAlign: "right" },
+  hdr:     { flexDirection: "row", paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: "#333", fontWeight: 700 },
+});
+
+export function AnlageVPdf({ ergebnis, propertyAddress, belege }: Props) {
   const { einnahmen: e, werbungskosten: w } = ergebnis;
   const isVerlust = ergebnis.ueberschussCents < 0;
 
@@ -134,6 +162,34 @@ export function AnlageVPdf({ ergebnis, propertyAddress }: Props) {
           Erstellt mit Domora · {formatDateObj(new Date())} · Keine steuerliche Beratung
         </Text>
       </Page>
+
+      {belege && belege.length > 0 && (
+        <Page size="A4" style={s.page}>
+          <Text style={s.title}>Einzelposten und Belege – {ergebnis.year}</Text>
+          <Text style={s.subtitle}>
+            {propertyAddress} · {belege.length} Posten · {belege.filter((p) => !p.beleg && p.cents !== 0).length} ohne Beleg
+          </Text>
+          <View style={b.hdr} fixed>
+            <Text style={b.zeile}>Z.</Text>
+            <Text style={b.date}>Datum</Text>
+            <Text style={b.label}>Posten</Text>
+            <Text style={b.beleg}>Beleg</Text>
+            <Text style={b.amount}>Betrag</Text>
+          </View>
+          {belege.map((p, i) => (
+            <View key={i} style={b.row} wrap={false}>
+              <Text style={b.zeile}>{p.zeile}</Text>
+              <Text style={b.date}>{fmtDate(p.date)}</Text>
+              <Text style={b.label}>{p.label}</Text>
+              <Text style={p.beleg || p.cents === 0 ? b.beleg : b.missing}>{p.beleg ?? (p.cents === 0 ? "–" : "fehlt")}</Text>
+              <Text style={b.amount}>{fmt(p.cents)}</Text>
+            </View>
+          ))}
+          <Text style={s.footer} fixed>
+            Erstellt mit Domora · {formatDateObj(new Date())} · Keine steuerliche Beratung
+          </Text>
+        </Page>
+      )}
     </Document>
   );
 }

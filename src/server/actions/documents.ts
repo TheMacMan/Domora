@@ -3,10 +3,13 @@
 import { mkdir, rename, writeFile } from "fs/promises";
 import path from "path";
 import { createId } from "@paralleldrive/cuid2";
-import { eq, isNull, and } from "drizzle-orm";
+import { eq, isNull, and, inArray } from "drizzle-orm";
+import { formatMoney } from "@/lib/money";
+import { formatDate } from "@/lib/dates";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { documents, expenseDocuments, expenses, leases, properties, tenants } from "@/db/schema";
+import { documents, expenses, expenseSchedules, leases, properties, tenants, wegAbrechnungen } from "@/db/schema";
+import { createDocumentLink, linkTargetExists } from "@/server/receipt-links";
 import { requireUser } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit";
 import {
@@ -98,17 +101,17 @@ export async function uploadDocumentAction(
     title: metaParsed.data.title ?? null,
   });
 
-  // Optional direkt als Beleg an eine Ausgabe hängen (Upload aus „Ausgabe bearbeiten")
-  const expenseId = formData.get("expenseId");
-  let linkedExpenseId: string | null = null;
-  if (typeof expenseId === "string" && /^[a-z0-9]{10,40}$/.test(expenseId)) {
-    const exp = await db.query.expenses.findFirst({ where: and(eq(expenses.id, expenseId), isNull(expenses.deletedAt)) });
-    if (exp) {
-      await db.insert(expenseDocuments).values({ expenseId, documentId: id }).onConflictDoNothing();
-      linkedExpenseId = expenseId;
-      revalidatePath("/expenses");
-      revalidatePath(`/expenses/${expenseId}/edit`);
-    }
+  // Optional direkt als Beleg verknüpfen (Upload aus „Belege" bei Ausgabe, Abo oder WEG-Abrechnung)
+  const linkType = formData.get("linkTargetType");
+  const linkId = formData.get("linkTargetId");
+  let linkedTo: string | null = null;
+  const checkedType = typeof linkType === "string" && typeof linkId === "string" ? await linkTargetExists(linkType, linkId) : null;
+  if (checkedType && typeof linkId === "string") {
+    await createDocumentLink(user.id, id, checkedType, linkId);
+    linkedTo = `${linkType}:${linkId}`;
+    revalidatePath("/expenses", "layout");
+    revalidatePath("/weg-statements", "layout");
+    revalidatePath("/tax", "layout");
   }
 
   await writeAuditLog({
@@ -116,7 +119,7 @@ export async function uploadDocumentAction(
     action: "document.upload",
     entity: "document",
     entityId: id,
-    after: { filename: file.name, entityType, entityId, tag: metaParsed.data.tag, year: metaParsed.data.year ?? null, expenseId: linkedExpenseId },
+    after: { filename: file.name, entityType, entityId, tag: metaParsed.data.tag, year: metaParsed.data.year ?? null, linkedTo },
   });
 
   revalidateDocumentViews(entityType, entityId);
@@ -207,17 +210,18 @@ export async function getDocumentsAction(entityType: EntityType, entityId: strin
       isNull(documents.deletedAt)
     ),
     orderBy: (d, { desc }) => [desc(d.createdAt)],
-  });
+    with: { links: { where: (l, { isNull: nul }) => nul(l.deletedAt), columns: { id: true } } },
+  }).then((rows) => rows.map(({ links, ...d }) => ({ ...d, linkCount: links.length })));
 }
 
 // Alle Dokumente mit lesbarer Zuordnung (für die Übersichtsseite /documents)
 export async function getAllDocumentsAction() {
   await requireUser();
   const [docs, tenantRows, propertyRows, leaseRows] = await Promise.all([
-    db.query.documents.findMany({
+db.query.documents.findMany({
       where: isNull(documents.deletedAt),
       orderBy: (d, { desc }) => [desc(d.createdAt)],
-      with: { expenseLinks: { with: { expense: true } } },
+      with: { links: { where: (l, { isNull: nul }) => nul(l.deletedAt) } },
     }),
     db.query.tenants.findMany(),
     db.query.properties.findMany(),
@@ -231,13 +235,23 @@ export async function getAllDocumentsAction() {
     label.set(`lease:${l.id}`, `Vertrag ${l.unit.name}${names ? ` · ${names}` : ""}`);
   }
   label.set(`general:${GENERAL_ENTITY_ID}`, "Allgemein");
-  const items = docs.map(({ expenseLinks, ...d }) => ({
+  // Verknüpfte Buchungen je Dokument (Ausgaben, Abos, WEG-Abrechnungen) mit Anzeige-Label
+  const linkIds = { expense: new Set<string>(), expense_schedule: new Set<string>(), weg_abrechnung: new Set<string>() };
+  for (const d of docs) for (const l of d.links) linkIds[l.targetType].add(l.targetId);
+  const [linkedExpenses, linkedSchedules, linkedWeg] = await Promise.all([
+    linkIds.expense.size ? db.query.expenses.findMany({ where: and(inArray(expenses.id, [...linkIds.expense]), isNull(expenses.deletedAt)) }) : [],
+    linkIds.expense_schedule.size ? db.query.expenseSchedules.findMany({ where: and(inArray(expenseSchedules.id, [...linkIds.expense_schedule]), isNull(expenseSchedules.deletedAt)) }) : [],
+    linkIds.weg_abrechnung.size ? db.query.wegAbrechnungen.findMany({ where: and(inArray(wegAbrechnungen.id, [...linkIds.weg_abrechnung]), isNull(wegAbrechnungen.deletedAt)) }) : [],
+  ]);
+  const linkLabel = new Map<string, { href: string; label: string }>();
+  for (const e of linkedExpenses) linkLabel.set(`expense:${e.id}`, { href: `/expenses/${e.id}/edit`, label: `${e.description || "Ausgabe"} · ${formatDate(e.date)} · ${formatMoney(e.amountCents)}` });
+  for (const s2 of linkedSchedules) linkLabel.set(`expense_schedule:${s2.id}`, { href: `/expenses/recurring/${s2.id}/edit`, label: `Abo: ${s2.description || "wiederkehrende Ausgabe"}` });
+  for (const w of linkedWeg) linkLabel.set(`weg_abrechnung:${w.id}`, { href: `/weg-statements/${w.id}`, label: `WEG-Abrechnung ${w.year}` });
+
+  const items = docs.map(({ links, ...d }) => ({
     ...d,
-    // Ausgaben, die dieses Dokument belegt
-    expenses: expenseLinks
-      .map((l) => l.expense)
-      .filter((e) => e.deletedAt == null)
-      .map((e) => ({ id: e.id, date: e.date, amountCents: e.amountCents, description: e.description })),
+    // Buchungen, die dieses Dokument belegt
+    linkedTo: links.map((l) => linkLabel.get(`${l.targetType}:${l.targetId}`)).filter((x): x is { href: string; label: string } => x != null),
     entityLabel: label.get(`${d.entityType}:${d.entityId}`) ?? "(unbekannt)",
     entityHref: d.entityType === "general" ? "/documents" : `${ENTITY_PATH[d.entityType as EntityType] ?? ""}/${d.entityId}`,
   }));

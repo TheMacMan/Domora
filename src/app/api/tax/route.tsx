@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnlageVAction, getTaxPropertiesAction } from "@/server/actions/tax";
+import { getAnlageVAction, getElsterAnlageVAction, getTaxPropertiesAction } from "@/server/actions/tax";
+import type { BelegPosten } from "@/lib/pdf/anlage-v-pdf";
 import type { DocumentProps } from "@react-pdf/renderer";
 
 export const dynamic = "force-dynamic";
@@ -15,9 +16,10 @@ export async function GET(req: NextRequest) {
   const year = parseInt(yearStr, 10);
   if (isNaN(year)) return new NextResponse("Ungültiges Jahr", { status: 400 });
 
-  const [ergebnis, propList] = await Promise.all([
+  const [ergebnis, propList, elster] = await Promise.all([
     getAnlageVAction(propertyId, year),
     getTaxPropertiesAction(),
+    getElsterAnlageVAction(propertyId, year),
   ]);
 
   if (!ergebnis) return new NextResponse("Objekt nicht gefunden", { status: 404 });
@@ -31,7 +33,21 @@ export async function GET(req: NextRequest) {
   const { renderToBuffer } = await import("@react-pdf/renderer");
   const { AnlageVPdf } = await import("@/lib/pdf/anlage-v-pdf");
 
-  const element = <AnlageVPdf ergebnis={ergebnis} propertyAddress={address} /> as React.ReactElement<DocumentProps>;
+  // Belegliste: jeder Einzelposten der Werbungskosten mit Belegname oder „fehlt"
+  const belege: BelegPosten[] = (elster?.werbungskosten ?? []).flatMap((sec) =>
+    sec.entries.flatMap((entry) =>
+      (entry.items ?? []).map((i) => ({
+        zeile: entry.zeile,
+        gruppe: entry.label,
+        date: i.date,
+        label: i.label,
+        cents: i.cents,
+        beleg: i.receipts && i.receipts.length > 0 ? i.receipts.map((r) => r.title ?? r.filename).join(", ") : null,
+      })),
+    ),
+  );
+
+  const element = <AnlageVPdf ergebnis={ergebnis} propertyAddress={address} belege={belege} /> as React.ReactElement<DocumentProps>;
   const buffer = await renderToBuffer(element);
 
   return new NextResponse(new Uint8Array(buffer), {

@@ -22,6 +22,7 @@ export type EditableDoc = {
   notes: string | null;
   entityType: string;
   entityId: string;
+  linkCount?: number; // Anzahl verknüpfter Buchungen (Belegfunktion)
 };
 
 // Bearbeiten-Knopf mit ausklappbarem Formular (Anzeigename, Kategorie, Jahr, Zuordnung, Notiz, Entfernen)
@@ -63,7 +64,11 @@ export function DocumentEditButton({ doc, targets }: { doc: EditableDoc; targets
   }
 
   function remove() {
-    if (!window.confirm(`„${doc.title ?? doc.filename}" entfernen?\n\nDas Dokument wird ausgeblendet, die Datei bleibt für die Aufbewahrungsfrist archiviert.`)) return;
+    const linked = doc.linkCount ?? 0;
+    const warning = linked > 0
+      ? `\n\nAchtung: Das Dokument ist Beleg für ${linked === 1 ? "eine Buchung" : `${linked} Buchungen`}. Diese stehen danach ohne Beleg da. Belege müssen 10 Jahre aufbewahrt werden.`
+      : "";
+    if (!window.confirm(`„${doc.title ?? doc.filename}" entfernen?${warning}\n\nDas Dokument wird ausgeblendet, die Datei bleibt für die Aufbewahrungsfrist archiviert.`)) return;
     startTransition(async () => {
       const res = await deleteDocumentAction(doc.id, doc.entityType as EntityType, doc.entityId);
       if (!res.ok) {

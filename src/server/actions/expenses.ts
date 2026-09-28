@@ -9,8 +9,13 @@ import { requireUser } from "@/lib/auth";
 import { toCents } from "@/lib/money";
 import { expenseSchema, type ExpenseFormInput } from "@/lib/validators/expense";
 import { writeAuditLog } from "@/lib/audit";
+import { resolveReceipts, tagForExpenseCategory } from "@/lib/expense-receipts";
+import { GENERAL_ENTITY_ID } from "@/lib/validators/document";
+import { uploadDocumentAction } from "@/server/actions/documents";
+import { loadReceiptLinks } from "@/server/receipt-links";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
+type CreateResult = { ok: true; id: string; receiptErrors: string[] } | { ok: false; error: string };
 
 function toDb(data: ExpenseFormInput) {
   return {
@@ -26,7 +31,9 @@ function toDb(data: ExpenseFormInput) {
   };
 }
 
-export async function createExpenseAction(data: ExpenseFormInput): Promise<ActionResult> {
+// Neue Ausgabe, optional mit Belegen (Dateien in `receipts`, Feld "file"): Ausgabe anlegen,
+// Dateien als Dokumente am Objekt der Ausgabe ablegen und direkt verknüpfen.
+export async function createExpenseAction(data: ExpenseFormInput, receipts?: FormData): Promise<CreateResult> {
   const user = await requireUser();
 
   const parsed = expenseSchema.safeParse(data);
@@ -37,8 +44,25 @@ export async function createExpenseAction(data: ExpenseFormInput): Promise<Actio
 
   await writeAuditLog({ userId: user.id, action: "expense.create", entity: "expense", entityId: id, after: parsed.data });
 
+  const receiptErrors: string[] = [];
+  const files = receipts?.getAll("file").filter((f): f is File => f instanceof File && f.size > 0) ?? [];
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("tag", tagForExpenseCategory(parsed.data.category));
+    fd.append("year", parsed.data.date.slice(0, 4));
+    fd.append("linkTargetType", "expense");
+    fd.append("linkTargetId", id);
+    const res = await uploadDocumentAction(
+      parsed.data.propertyId ? "property" : "general",
+      parsed.data.propertyId ?? GENERAL_ENTITY_ID,
+      fd,
+    );
+    if (!res.ok) receiptErrors.push(`${file.name}: ${res.error}`);
+  }
+
   revalidatePath("/expenses");
-  return { ok: true };
+  return { ok: true, id, receiptErrors };
 }
 
 export async function updateExpenseAction(id: string, data: ExpenseFormInput): Promise<ActionResult> {
@@ -84,17 +108,13 @@ export async function getExpensesAction(filters?: { propertyId?: string; year?: 
   const rows = await db.query.expenses.findMany({
     where: isNull(expenses.deletedAt),
     orderBy: [desc(expenses.date)],
-    with: {
-      property: true,
-      receiptLinks: { with: { document: { columns: { id: true, filename: true, title: true, mimeType: true, deletedAt: true } } } },
-    },
+    with: { property: true },
   });
+  // Belege: eigene plus geerbte (Abo, WEG-Abrechnung)
+  const byTarget = await loadReceiptLinks();
 
-  let result = rows.map(({ receiptLinks, ...e }) => {
-    const receipts = receiptLinks
-      .map((l) => l.document)
-      .filter((d) => d.deletedAt == null)
-      .map(({ deletedAt: _deleted, ...d }) => d);
+  let result = rows.map((e) => {
+    const receipts = resolveReceipts(e, byTarget).map((r) => r.doc);
     return { ...e, receipts, receiptCount: receipts.length };
   });
 
