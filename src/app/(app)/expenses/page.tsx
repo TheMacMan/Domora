@@ -6,8 +6,9 @@ import { formatMoney } from "@/lib/money";
 import { formatDate, formatMonthShort } from "@/lib/dates";
 import { CATEGORY_LABELS, isOperatingCost } from "@/lib/expense";
 import { ExpenseFilters } from "@/components/expense/expense-filters";
-import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, Paperclip, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, RefreshCw, Calendar, ArrowUpRight, ArrowDownRight, Repeat, AlertTriangle } from "lucide-react";
 import { receiptStatus } from "@/lib/expense-receipts";
+import { ReceiptPreviewButton } from "@/components/expense/receipt-preview-button";
 
 export const metadata = { title: "Ausgaben – Domora" };
 
@@ -37,12 +38,7 @@ function yearOf(e: Expense, mode: "date" | "period"): number {
 function ReceiptBadge({ e }: { e: Expense }) {
   const status = receiptStatus(e);
   if (status === "linked") {
-    return (
-      <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground" title={`${e.receiptCount} Beleg(e) verknüpft`}>
-        <Paperclip className="size-3" />
-        {e.receiptCount > 1 && e.receiptCount}
-      </span>
-    );
+    return <ReceiptPreviewButton docs={e.receipts} />;
   }
   if (status === "missing") {
     return (
