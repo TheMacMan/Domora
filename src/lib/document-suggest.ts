@@ -13,6 +13,8 @@ export function suggestYear(filename: string): number | null {
 
 // Stichworte → Kategorie; erste passende Regel gewinnt
 const RULES: Array<[RegExp, DocumentTag]> = [
+  // Grundsteuer vor „Steuer", sonst landen Grundsteuerbescheide unter Steuer
+  [/grundsteuer|grundbesitzabgabe/i, "Grundsteuer & Gebühren"],
   [/zins|darlehen|kredit|tilgung|bauspar/i, "Darlehen & Zinsen"],
   [/este|steuer(?!n?ummer)|anlage[ _-]?v|bescheid.*finanzamt|elster/i, "Steuer"],
   [/versicherung|police/i, "Versicherung"],
@@ -31,4 +33,35 @@ const RULES: Array<[RegExp, DocumentTag]> = [
 export function suggestTag(filename: string): DocumentTag | null {
   for (const [re, tag] of RULES) if (re.test(filename)) return tag;
   return null;
+}
+
+const MONTHS_DE = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+
+// Anzeigename aus dem Dateinamen: Trenner zu Leerzeichen, Datum ans Ende in Klammern
+// („20251110_Bauhaus.pdf" → „Bauhaus (10.11.2025)", „2025_Frischwasser_Hörstein.pdf" →
+// „Frischwasser Hörstein 2025"). Übergabeprotokolle bekommen den Namen des Mieters.
+export function suggestTitle(filename: string, opts: { tag?: string | null; personName?: string | null } = {}): string {
+  let base = filename.replace(/\.[^.]+$/, "").normalize("NFC");
+  let suffix = "";
+  const full = base.match(/^(20\d{2})[-_.]?(0[1-9]|1[0-2])[-_.]?(0[1-9]|[12]\d|3[01])(?=[^0-9]|$)[-_ .]*/);
+  if (full) {
+    suffix = ` (${full[3]}.${full[2]}.${full[1]})`;
+    base = base.slice(full[0].length);
+  } else {
+    const ym = base.match(/^(20\d{2})[-_.](0[1-9]|1[0-2])(?=[^0-9]|$)[-_ .]*/);
+    const y = base.match(/^((?:19|20)\d{2}(?:-(?:19|20)\d{2})?)(?=[^0-9]|$)[-_ .]*/);
+    if (ym) {
+      suffix = ` ${MONTHS_DE[+ym[2]! - 1]} ${ym[1]}`;
+      base = base.slice(ym[0].length);
+    } else if (y) {
+      suffix = ` ${y[1]!.replace("-", "/")}`;
+      base = base.slice(y[0].length);
+    }
+  }
+  let words = base.replace(/[_]+/g, " ").replace(/\s+-\s+/g, " – ").replace(/\s+/g, " ").trim();
+  if (opts.tag === "Übergabeprotokoll" && opts.personName && !words.toLowerCase().includes(opts.personName.split(" ").at(-1)!.toLowerCase())) {
+    words = `${words || "Übergabeprotokoll"} ${opts.personName}`;
+  }
+  if (!words) words = opts.tag ?? "Dokument";
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}${suffix}`;
 }

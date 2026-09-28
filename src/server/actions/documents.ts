@@ -5,6 +5,7 @@ import path from "path";
 import { createId } from "@paralleldrive/cuid2";
 import { eq, isNull, and, inArray } from "drizzle-orm";
 import { formatMoney } from "@/lib/money";
+import { suggestTitle } from "@/lib/document-suggest";
 import { formatDate } from "@/lib/dates";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -79,6 +80,20 @@ export async function uploadDocumentAction(
   });
   if (!metaParsed.success) return { ok: false, error: "Ungültige Eingabe." };
 
+  // Kein Anzeigename angegeben → aus dem Dateinamen vorschlagen (bei Mieter/Vertrag mit Namen)
+  let title = metaParsed.data.title ?? null;
+  if (!title) {
+    let personName: string | null = null;
+    if (entityType === "tenant") {
+      const t = await db.query.tenants.findFirst({ where: eq(tenants.id, entityId) });
+      personName = t ? `${t.firstName} ${t.lastName}` : null;
+    } else if (entityType === "lease") {
+      const l = await db.query.leases.findFirst({ where: eq(leases.id, entityId), with: { leaseTenants: { with: { tenant: true } } } });
+      personName = l?.leaseTenants.map((lt) => `${lt.tenant.firstName} ${lt.tenant.lastName}`).join(", ") || null;
+    }
+    title = suggestTitle(file.name, { tag: metaParsed.data.tag, personName });
+  }
+
   const id = createId();
   const storedName = `${id}.${fileType.ext}`;
   const dir = uploadsDir(entityType, entityId);
@@ -98,7 +113,7 @@ export async function uploadDocumentAction(
     tag: metaParsed.data.tag,
     notes: metaParsed.data.notes ?? null,
     year: metaParsed.data.year ?? null,
-    title: metaParsed.data.title ?? null,
+    title,
   });
 
   // Optional direkt als Beleg verknüpfen (Upload aus „Belege" bei Ausgabe, Abo oder WEG-Abrechnung)

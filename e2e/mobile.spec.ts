@@ -58,6 +58,7 @@ const PAGES: Array<[string, string | undefined]> = [
   ["steuer", `/tax?year=${year}`],
   ["elster", `/tax/elster?year=${year}`],
   ["dokumente", "/documents"],
+  ["dokumente-ohne-buchung", `/documents?year=${year}&beleg=unlinked`],
   ["vpi", "/cpi"],
   ["einstellungen", "/settings"],
 ];

@@ -33,7 +33,7 @@ export function DocumentFilters({ whereOptions, years, tags }: { whereOptions: O
     return () => clearTimeout(t);
   }, [q]);
 
-  const active = ["q", "where", "year", "tag"].some((k) => params.get(k));
+  const active = ["q", "where", "year", "tag", "beleg"].some((k) => params.get(k));
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -48,6 +48,11 @@ export function DocumentFilters({ whereOptions, years, tags }: { whereOptions: O
       <select className={selectClass} value={params.get("year") ?? ""} onChange={(e) => update("year", e.target.value)} aria-label="Jahr">
         <option value="">Alle Jahre</option>
         {years.map((y) => <option key={y} value={y}>{y === "none" ? "Ohne Jahr" : y}</option>)}
+      </select>
+      <select className={selectClass} value={params.get("beleg") ?? ""} onChange={(e) => update("beleg", e.target.value)} aria-label="Buchung">
+        <option value="">Alle Belege</option>
+        <option value="unlinked">Beleg ohne Buchung</option>
+        <option value="linked">Mit Buchung</option>
       </select>
       <select className={selectClass} value={params.get("tag") ?? ""} onChange={(e) => update("tag", e.target.value)} aria-label="Kategorie">
         <option value="">Alle Kategorien</option>

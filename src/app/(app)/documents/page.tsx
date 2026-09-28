@@ -25,7 +25,13 @@ function DocIcon({ mime }: { mime: string }) {
   return <FileText className="size-5 text-muted-foreground shrink-0 mt-0.5" />;
 }
 
-type SearchParams = { q?: string; where?: string; year?: string; tag?: string };
+// Dokumente, die als Beleg einer Buchung in Frage kommen (keine Mieter-/Vertragsunterlagen)
+const NON_RECEIPT_TAGS = new Set(["Mietvertrag", "Übergabeprotokoll", "Personalausweis", "Verdienstnachweis", "SCHUFA", "Korrespondenz"]);
+function isReceiptDoc(d: { entityType: string; tag: string }) {
+  return (d.entityType === "property" || d.entityType === "general") && !NON_RECEIPT_TAGS.has(d.tag);
+}
+
+type SearchParams = { q?: string; where?: string; year?: string; tag?: string; beleg?: string };
 
 // Alle Dokumente an einer Stelle: suchen, filtern, nach Jahr gruppiert. Hochladen mit wählbarer Zuordnung.
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -41,6 +47,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       if (sp.year === "none" ? d.year != null : String(d.year) !== sp.year) return false;
     }
     if (sp.tag && d.tag !== sp.tag) return false;
+    // „Beleg ohne Buchung": Belege eines Objekts bzw. allgemein, die mit keiner Buchung verknüpft sind
+    if (sp.beleg === "unlinked" && (!isReceiptDoc(d) || d.linkedTo.length > 0)) return false;
+    if (sp.beleg === "linked" && d.linkedTo.length === 0) return false;
     if (q && ![d.title, d.filename, d.notes, d.entityLabel].some((v) => v?.toLowerCase().includes(q))) return false;
     return true;
   });
@@ -53,7 +62,10 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   }
   const groupKeys = [...groups.keys()].sort((a, b) => (a === "none" ? 1 : b === "none" ? -1 : Number(b) - Number(a)));
   const newestYear = groupKeys.find((k) => k !== "none");
-  const filtered = Boolean(sp.q || sp.where || sp.year || sp.tag);
+  const filtered = Boolean(sp.q || sp.where || sp.year || sp.tag || sp.beleg);
+  // Kennzahl für das laufende Steuerjahr (Vorjahr)
+  const taxYear = new Date().getFullYear() - 1;
+  const unlinkedTaxYear = all.filter((d) => d.year === taxYear && isReceiptDoc(d) && d.linkedTo.length === 0).length;
 
   // Filteroptionen aus dem Bestand
   const whereOptions = [
@@ -75,6 +87,14 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <h1 className="text-2xl font-bold tracking-tight">Dokumente</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {all.length} Dokumente{filtered && ` · ${docs.length} gefiltert`} · Belege 10 Jahre aufbewahren
+            {unlinkedTaxYear > 0 && sp.beleg !== "unlinked" && (
+              <>
+                {" · "}
+                <Link href={`/documents?year=${taxYear}&beleg=unlinked`} className="text-amber-600 underline">
+                  {unlinkedTaxYear} {unlinkedTaxYear === 1 ? "Beleg" : "Belege"} {taxYear} ohne Buchung
+                </Link>
+              </>
+            )}
           </p>
         </div>
         <DocumentUploadForm entityType="general" entityId={GENERAL_ENTITY_ID} targets={targets} />

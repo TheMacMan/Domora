@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, X, CheckCircle2, AlertCircle, FileUp } from "lucide-react";
-import { suggestTag, suggestYear } from "@/lib/document-suggest";
+import { suggestTag, suggestTitle, suggestYear } from "@/lib/document-suggest";
 import type { DocumentTarget } from "@/server/actions/documents";
 
 const selectClass =
@@ -246,7 +246,10 @@ export function DocumentUploadForm({ entityType, entityId, defaultOpen = false, 
             <ul className="rounded-md border divide-y text-sm">
               {selectedFiles.map((f, i) => (
                 <li key={`${f.name}-${f.size}`} className="flex items-center gap-2 pl-3 pr-1 py-1">
-                  <span className="truncate flex-1">{f.name}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{suggestTitle(f.name, { tag: suggestTag(f.name) })}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{f.name}</span>
+                  </span>
                   <span className="hidden sm:inline text-xs text-muted-foreground shrink-0">
                     {[suggestTag(f.name), suggestYear(f.name)].filter(Boolean).join(" · ")}
                   </span>

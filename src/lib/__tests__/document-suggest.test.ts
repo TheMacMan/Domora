@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { suggestTag, suggestYear } from "../document-suggest";
+import { suggestTag, suggestTitle, suggestYear } from "../document-suggest";
 
 describe("suggestYear", () => {
   it("erkennt Jahr am Anfang, in der Mitte und im Namen", () => {
@@ -15,6 +15,9 @@ describe("suggestYear", () => {
 });
 
 describe("suggestTag", () => {
+  it("Grundsteuer vor Steuer", () => {
+    expect(suggestTag("2025_Grundsteuer_Erlensee.pdf")).toBe("Grundsteuer & Gebühren");
+  });
   it.each([
     ["2025_Zinsnachweise.pdf", "Darlehen & Zinsen"],
     ["2024_Zinsen_6209854014.pdf", "Darlehen & Zinsen"],
@@ -34,5 +37,23 @@ describe("suggestTag", () => {
   });
   it("ohne Treffer null", () => {
     expect(suggestTag("scan_0001.pdf")).toBeNull();
+  });
+});
+
+describe("suggestTitle", () => {
+  it("Datum aus dem Dateinamen ans Ende", () => {
+    expect(suggestTitle("20251110_Bauhaus.pdf")).toBe("Bauhaus (10.11.2025)");
+    expect(suggestTitle("20251101_Bauhaus_2.pdf")).toBe("Bauhaus 2 (01.11.2025)");
+    expect(suggestTitle("2025_Frischwasser_Hörstein.pdf")).toBe("Frischwasser Hörstein 2025");
+    expect(suggestTitle("2023-2024_Grundsteuer_Hörstein_WE2.pdf")).toBe("Grundsteuer Hörstein WE2 2023/2024");
+    expect(suggestTitle("2026-03_Rechnung.pdf")).toBe("Rechnung Mär 2026");
+  });
+  it("ohne Datum: Trenner bereinigen", () => {
+    expect(suggestTitle("Perso - Nathalie - 1-2.jpg")).toBe("Perso – Nathalie – 1-2");
+    expect(suggestTitle("mietvertrag_eg.pdf")).toBe("Mietvertrag eg");
+  });
+  it("Übergabeprotokoll mit Mietername", () => {
+    expect(suggestTitle("Übergabeprotokoll.pdf", { tag: "Übergabeprotokoll", personName: "Max Muster" })).toBe("Übergabeprotokoll Max Muster");
+    expect(suggestTitle("Übergabeprotokoll_Muster.pdf", { tag: "Übergabeprotokoll", personName: "Max Muster" })).toBe("Übergabeprotokoll Muster");
   });
 });
