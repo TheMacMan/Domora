@@ -80,13 +80,15 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
 
   // Filter anwenden
   const filtered = all.filter((e) => {
+    // Jahr passend zur Sortierung/Gruppierung: Buchungsjahr (= Steuerjahr, Abflussprinzip)
+    // oder — bei Sortierung nach Leistungszeitraum — Überschneidung mit dem Zeitraum
     if (filterYear) {
       const y = parseInt(filterYear, 10);
-      const inBookingYear = e.date.startsWith(filterYear);
-      const inPeriod = e.servicePeriodStart && e.servicePeriodEnd
-        && parseInt(e.servicePeriodStart.slice(0, 4), 10) <= y
-        && parseInt(e.servicePeriodEnd.slice(0, 4), 10) >= y;
-      if (!inBookingYear && !inPeriod) return false;
+      if (sortMode === "period" && e.servicePeriodStart && e.servicePeriodEnd) {
+        const inPeriod = parseInt(e.servicePeriodStart.slice(0, 4), 10) <= y
+          && parseInt(e.servicePeriodEnd.slice(0, 4), 10) >= y;
+        if (!inPeriod) return false;
+      } else if (!e.date.startsWith(filterYear)) return false;
     }
     if (filterProperty) {
       if (filterProperty === "none") {
