@@ -101,7 +101,7 @@ export async function getReceiptPanelAction(targetType: DocumentLinkTarget, targ
   };
 
   // Fahrtkosten: Link auf das Fahrzeug der Fahrt
-  let tripVehicleHref = "/expenses/vehicles";
+  let tripVehicleHref = "/expenses/trips#fahrzeuge";
   if (targetType === "expense") {
     const tr = await db.query.trips.findFirst({ where: and(eq(trips.expenseId, targetId), isNull(trips.deletedAt)) });
     if (tr) tripVehicleHref = `/expenses/vehicles/${tr.vehicleId}`;

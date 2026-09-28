@@ -144,7 +144,7 @@ export function buildDashboardTasks(input: TaskInput): DashboardTask[] {
       severity: r.year < currentYear ? "warning" : "info",
       title: `${r.count} ${r.count === 1 ? "Fahrzeugkosten-Posten" : "Fahrzeugkosten-Posten"} ${r.year} ohne Beleg`,
       detail: "Leasing, Versicherung, Reifen … — die Kosten bestimmen den km-Satz und müssen belegt sein",
-      href: "/expenses/vehicles",
+      href: "/expenses/trips#fahrzeuge",
       amountCents: r.cents,
     });
   }

@@ -42,7 +42,7 @@ export function VehicleForm({ mode, vehicleId, defaults }: { mode: "create" | "e
     startTransition(async () => {
       const res = await deleteVehicleAction(vehicleId);
       if (!res.ok) return void toast.error(res.error);
-      router.push("/expenses/vehicles");
+      router.push("/expenses/trips#fahrzeuge");
     });
   }
 

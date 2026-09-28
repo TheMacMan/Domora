@@ -382,6 +382,12 @@ export async function getTripAction(id: string) {
   return db.query.trips.findFirst({ where: and(eq(trips.id, id), isNull(trips.deletedAt)) });
 }
 
+// Zuletzt erfasste Fahrt (Vorschlag für Strecke, km und Objekt einer neuen Fahrt)
+export async function getLastTripAction() {
+  await requireUser();
+  return db.query.trips.findFirst({ where: isNull(trips.deletedAt), orderBy: (t, { desc }) => [desc(t.date), desc(t.createdAt)] });
+}
+
 // Reiter „Fahrten": Fahrzeugjahre, Fahrten, Hinweise
 export async function getTripsPageAction(year: number) {
   await requireUser();
@@ -430,5 +436,6 @@ export async function getTripsPageAction(year: number) {
   const years = [...new Set([...allTrips.map((t) => +t.date.slice(0, 4)), +today.slice(0, 4)])].sort((a, b) => b - a);
   const propertyLabel = new Map(form.properties.map((p) => [p.id, p.label]));
   const frequent = frequentDestinations(tripRows).map((f) => ({ ...f, label: propertyLabel.get(f.propertyId) ?? "" }));
-  return { cards, trips: list, years, routes: form.routes, properties: form.properties, frequent };
+  const vehiclesSorted = [...vehicleList].sort((a, b) => b.inUseFrom.localeCompare(a.inUseFrom));
+  return { cards, trips: list, years, routes: form.routes, properties: form.properties, frequent, vehicles: vehiclesSorted };
 }

@@ -96,7 +96,7 @@ export function TripForm({
   if (vehicles.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-        Noch kein Fahrzeug angelegt. Lege zuerst unter „Fahrzeuge“ ein Fahrzeug an.
+        Noch kein Fahrzeug angelegt. Lege zuerst unter Ausgaben → Fahrten → „Fahrzeuge“ ein Fahrzeug an.
       </div>
     );
   }

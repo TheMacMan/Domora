@@ -4,6 +4,7 @@ import { ExpenseTabs } from "@/components/expense/expense-tabs";
 import { Button } from "@/components/ui/button";
 import { VehicleYearControls } from "@/components/trips/vehicle-year-controls";
 import { RouteManager } from "@/components/trips/route-manager";
+import { VehiclesSection } from "@/components/vehicles/vehicles-section";
 import { getTripsPageAction } from "@/server/actions/vehicles";
 import { formatMoney } from "@/lib/money";
 import { formatDate, todayLocal } from "@/lib/dates";
@@ -65,7 +66,7 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
 
       {data.cards.length === 0 ? (
         <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-          Kein Fahrzeug in {year} in Nutzung. <Link href="/expenses/vehicles/new" className="underline">Fahrzeug anlegen</Link>
+          Kein Fahrzeug in {year} in Nutzung. <Link href="/expenses/vehicles/new" className="underline">Fahrzeug anlegen</Link> oder unten unter „Fahrzeuge“ den Nutzungszeitraum anpassen.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -146,6 +147,13 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
           </ul>
         )}
       </section>
+
+      <details id="fahrzeuge" open={data.vehicles.length === 0} className="scroll-mt-20 rounded-xl border bg-card">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Fahrzeuge ({data.vehicles.length})</summary>
+        <div className="border-t p-4">
+          <VehiclesSection vehicles={data.vehicles} today={todayLocal()} />
+        </div>
+      </details>
 
       <details className="rounded-xl border bg-card">
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Gespeicherte Strecken ({data.routes.length})</summary>

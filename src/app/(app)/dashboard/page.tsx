@@ -10,7 +10,7 @@ import { currentYearMonth, formatMonthLong as formatMonthLabel, todayLocal } fro
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Private } from "@/components/private";
-import { ArrowRight, CreditCard, AlertTriangle, Home, FileText, TrendingUp } from "lucide-react";
+import { ArrowRight, CreditCard, AlertTriangle, Home, FileText, TrendingUp, Car } from "lucide-react";
 
 export const metadata = { title: "Dashboard – Domora" };
 
@@ -140,9 +140,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">{formatMonthLabel(ym)}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">{formatMonthLabel(ym)}</p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link href="/expenses/trips/new"><Car className="size-4" />Fahrt erfassen</Link>
+        </Button>
       </div>
 
       <DashboardTasks tasks={tasks} />

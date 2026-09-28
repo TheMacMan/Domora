@@ -35,7 +35,7 @@ export default async function VehicleDetailPage({ params, searchParams }: { para
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link href="/expenses/vehicles"><ArrowLeft className="size-4" />Fahrzeuge</Link>
+          <Link href="/expenses/trips#fahrzeuge"><ArrowLeft className="size-4" />Fahrten & Fahrzeuge</Link>
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">{vehicle.name}</h1>
       </div>
