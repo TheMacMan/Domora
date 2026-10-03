@@ -32,3 +32,14 @@ export function formatMoneyShort(cents: number): string {
     maximumFractionDigits: 0,
   }).format(cents / 100);
 }
+
+// Betrag ohne Rundungsdifferenz auf n Teile verteilen: Teil `index` (0-basiert).
+// Die ersten |rest| Teile bekommen einen Cent mehr (bei negativen Beträgen weniger),
+// sodass die Summe aller Teile genau dem Betrag entspricht.
+export function splitCents(totalCents: number, parts: number, index: number): number {
+  const sign = totalCents < 0 ? -1 : 1;
+  const abs = Math.abs(totalCents);
+  const base = Math.floor(abs / parts);
+  const rest = abs - base * parts;
+  return sign * (base + (index < rest ? 1 : 0));
+}

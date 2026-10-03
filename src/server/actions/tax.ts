@@ -4,6 +4,7 @@ import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { trips, properties, propertyDepreciationItems, paymentReceipts, loanPayments, loanInterestYears, expenses, loans, nkAbrechnungVacancy, nkAbrechnungen } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { splitCents } from "@/lib/money";
 import { expenseReceipts, loadReceiptContext } from "@/server/receipt-links";
 import { computeVehicleYearFor } from "@/server/trip-sync";
 import { calcAnlageV, calcAfA, buildLoanInterestPayments, receiptsToAnlageVPayments, depreciationItemsSumForYear, type AnlageVErgebnis } from "@/lib/tax/anlage-v";
@@ -72,6 +73,11 @@ async function loadTaxYearData(propertyId: string, year: number) {
     where: isNull(properties.deletedAt),
   });
   const propertyCount = Math.max(allProperties.length, 1);
+  // feste Reihenfolge, damit die Cent-Reste über alle Objekte genau aufgehen
+  const propertyIndex = Math.max(
+    allProperties.map((p) => p.id).sort().indexOf(propertyId),
+    0,
+  );
 
   // Belege je Ausgabe (eigene + geerbte) — nur Verweis, ändert keine Beträge
   const receiptCtx = await loadReceiptContext();
@@ -86,7 +92,7 @@ async function loadTaxYearData(propertyId: string, year: number) {
         return [{
           id: e.id,
           category: e.category,
-          amountCents: Math.round(e.amountCents / propertyCount),
+          amountCents: splitCents(e.amountCents, propertyCount, propertyIndex),
           date: e.date,
           description: `${e.description ?? "(ohne Beschreibung)"} (anteilig 1/${propertyCount})`,
           receipts: receiptsOf(e),

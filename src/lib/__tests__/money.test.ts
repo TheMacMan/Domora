@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseEuroInput } from "../money";
+import { parseEuroInput, splitCents } from "../money";
 
 describe("parseEuroInput", () => {
   it("versteht deutsche Schreibweise mit Tausenderpunkt", () => {
@@ -17,5 +17,16 @@ describe("parseEuroInput", () => {
     expect(parseEuroInput("")).toBeNull();
     expect(parseEuroInput("abc")).toBeNull();
     expect(parseEuroInput("12,345")).toBeNull();
+  });
+});
+
+describe("splitCents", () => {
+  it("verteilt ohne Rundungsdifferenz", () => {
+    const parts = [0, 1].map((i) => splitCents(1385, 2, i));
+    expect(parts).toEqual([693, 692]);
+    expect(parts[0]! + parts[1]!).toBe(1385);
+    expect([0, 1, 2].map((i) => splitCents(1000, 3, i))).toEqual([334, 333, 333]);
+    expect([0, 1].map((i) => splitCents(-1385, 2, i))).toEqual([-693, -692]);
+    expect(splitCents(1200, 2, 1)).toBe(600);
   });
 });
