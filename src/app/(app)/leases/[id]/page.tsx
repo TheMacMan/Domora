@@ -37,6 +37,14 @@ export default async function LeasePage({ params }: { params: Promise<{ id: stri
 
   if (!lease || lease.deletedAt) notFound();
 
+  const livingArea = lease.unit.livingArea ?? null;
+  const perSqm = (cents: number) =>
+    livingArea && livingArea > 0 ? (
+      <p className="text-xs font-normal text-muted-foreground">
+        {(cents / 100 / livingArea).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/m²
+      </p>
+    ) : null;
+
   const adjustments = lease.rentAdjustments;
   const today = todayLocal();
 
@@ -162,7 +170,7 @@ export default async function LeasePage({ params }: { params: Promise<{ id: stri
         </Button>
       </div>
 
-      {/* Miethistorie */}
+      {/* Miethistorie — Kaltmiete je m² Wohnfläche (ohne Komponenten wie Stellplatz), vergleichbar mit dem Mietspiegel */}
       <div>
         <h2 className="text-base font-semibold mb-4">Mietentwicklung</h2>
         <div className="rounded-xl border overflow-x-auto bg-card shadow-sm">
@@ -188,6 +196,7 @@ export default async function LeasePage({ params }: { params: Promise<{ id: stri
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
                       {formatMoney(lease.rentCents)}
+                      {perSqm(lease.rentCents)}
                       {componentsCents > 0 && (
                         <p className="text-xs font-normal text-muted-foreground">+ {formatMoney(componentsCents)} Komp.</p>
                       )}
@@ -226,6 +235,7 @@ export default async function LeasePage({ params }: { params: Promise<{ id: stri
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-medium">
                       {formatMoney(adj.rentCents)}
+                      {perSqm(adj.rentCents)}
                       {componentsCents > 0 && (
                         <p className="text-xs font-normal text-muted-foreground">+ {formatMoney(componentsCents)} Komp.</p>
                       )}
